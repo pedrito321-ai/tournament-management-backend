@@ -25,5 +25,5 @@ npm install
 4. **Iniciar servidor de desarrollo**
 
 ```bash
-npm dev
+npm run dev
 ```
