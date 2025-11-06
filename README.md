@@ -11,16 +11,16 @@ git clone https://github.com/anibalcoder/tournament-management-backend.git
 cd tournament-management-backend
 ```
 
-2. **Instala dependencias**
+2. **Configurar entorno**
+
+    - Crear una copia de `.env.template` y renombrar a `.env`.
+    - Luego, reemplaza los valores según tus credenciales.
+
+3. **Instala dependencias**
 
 ```bash
 npm install
 ```
-
-3. **Configurar entorno**
-
-    - Crear una copia de `.env.template` y renombrar a `.env`.
-    - Luego, reemplaza los valores según tus credenciales.
 
 4. **Iniciar servidor de desarrollo**
 
