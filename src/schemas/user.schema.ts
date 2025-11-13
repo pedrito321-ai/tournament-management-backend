@@ -7,6 +7,11 @@ export const userRegisterSchema = object ({
     .min (3, 'El nickname debe tener al menos 3 caracteres.')
     .max (30, 'El nickname no puede superar los 30 caracteres.'),
 
+  full_name: string ()
+    .required('El nombre completo es obligatorio.')
+    .min(3, 'El nombre completo debe tener al menos 3 caracteres.')
+    .max(250, 'El nombre completo no puede superar los 250 caracteres.'),
+
   user_password: string ()
     .required ('La contraseña es obligatoria.')
     .min (8, 'Debe tener al menos 8 caracteres.')
@@ -23,3 +28,5 @@ export const userRegisterSchema = object ({
     .oneOf (Object.values(users_role), 'Rol no válido.')
     .default (users_role.competitor),
 })
+
+export const userUpdateSchema = userRegisterSchema.partial();

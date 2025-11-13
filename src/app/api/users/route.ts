@@ -33,6 +33,7 @@ export async function GET(request: NextRequest) {
       orderBy: { created_at: 'desc' },
       select: {
         id: true,
+        full_name: true,
         nickname: true,
         role: true,
         created_at: true,

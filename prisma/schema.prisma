@@ -230,6 +230,7 @@ model tournaments {
 
 model users {
   id                                         Int               @id @default(autoincrement())
+  full_name                                  String            @db.VarChar(255)
   nickname                                   String            @unique(map: "nickname") @db.VarChar(100)
   user_password                              String            @db.VarChar(255)
   role                                       users_role

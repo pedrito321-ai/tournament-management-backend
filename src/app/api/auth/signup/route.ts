@@ -9,7 +9,7 @@ export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
 
-    const { nickname, user_password, role } = await userRegisterSchema.validate(body)
+    const { full_name, nickname, user_password, role } = await userRegisterSchema.validate(body, { abortEarly: false })
   
     // Verificar si el usuario ya existe
     const existingUser = await prisma.users.findUnique({ where: { nickname } })
@@ -26,6 +26,7 @@ export async function POST(request: NextRequest) {
 
     const newUser = await prisma.users.create({
       data: {
+        full_name,
         nickname,
         user_password: hashedPassword,
         role
@@ -33,10 +34,12 @@ export async function POST(request: NextRequest) {
     })
 
     // Genera un JWT al registrarse para autenticar al usuario de inmediato sin pasar por login.
+    const jwtExpiresIn = Number(process.env.JWT_EXPIRES_IN) || 3600
+
     const token = jwt.sign(
       { id: newUser.id, nickname: newUser.nickname, role: newUser.role },
       process.env.JWT_SECRET!,
-      { expiresIn: '1h' }
+      { expiresIn: jwtExpiresIn }
     )
 
     return NextResponse.json(
@@ -44,6 +47,7 @@ export async function POST(request: NextRequest) {
         message: 'Usuario registrado exitosamente',
         user: {
           id: newUser.id,
+          full_name: newUser.full_name,
           nickname: newUser.nickname,
           role: newUser.role,
         },

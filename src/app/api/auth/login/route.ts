@@ -23,7 +23,7 @@ export async function POST(request: NextRequest) {
     const token = jwt.sign(
       { id: user.id, nickname: user.nickname, role: user.role },
       process.env.JWT_SECRET!,
-      { expiresIn: '1h' }
+      { expiresIn: Number(process.env.JWT_EXPIRES_IN) || 3600 }
     )
 
     return NextResponse.json({
@@ -31,6 +31,7 @@ export async function POST(request: NextRequest) {
       token,
       user: {
         id: user?.id,
+        full_name: user?.full_name,
         nickname: user?.nickname,
         role: user?.role
       }
