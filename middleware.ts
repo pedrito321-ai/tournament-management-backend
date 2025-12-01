@@ -5,21 +5,21 @@ import jwt from 'jsonwebtoken'
 export async function middleware(req: NextRequest) {
   const token = req.headers.get('authorization')?.split(' ')[1]
 
-  // Si la ruta no necesita autenticación, deja pasar
+  // Si no es endpoint protegido, dejar pasar
   if (!req.nextUrl.pathname.startsWith('/api/')) {
-    return NextResponse.next() // deja que la petición continúe normalmente
+    return NextResponse.next()
   }
 
   // Si no hay token
   if (!token) {
-    return NextResponse.json({ error: 'Acceso no autorizado' }, { status: 401 })
+    return NextResponse.json({ error: 'Acceso no autorizado' }, { status: 401 });
   }
 
   try {
     jwt.verify(token, process.env.JWT_SECRET!)
-    return NextResponse.next()
+    return NextResponse.next();
   } catch {
-    return NextResponse.json({ error: 'Token inválido o expirado' }, { status: 403 })
+    return NextResponse.json({ error: 'Token inválido o expirado' }, { status: 403 });
   }
 }
 

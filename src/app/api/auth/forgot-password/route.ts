@@ -1,11 +1,16 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import nodemailer from 'nodemailer';
 import jwt from 'jsonwebtoken';
 import prisma from '@/libs/prisma';
+import { applyCorsHeaders, handleCorsOptions } from '@/libs/cors';
 
 const JWT_SECRET = process.env.JWT_SECRET!;
 
-export async function POST(req: Request) {
+export async function OPTIONS() {
+  return handleCorsOptions();
+}
+
+export async function POST(req: NextRequest) {
   try {
     const { email } = await req.json();
 
@@ -13,9 +18,11 @@ export async function POST(req: Request) {
     const user = await prisma.users.findUnique({ where: { email } });
 
     if (!user)
-      return NextResponse.json(
-        { message: 'Correo no encontrado' },
-        { status: 404 }
+      return applyCorsHeaders(
+        NextResponse.json(
+          { error: 'Correo no encontrado' },
+          { status: 404 }
+        )
       );
 
     // Token válido 15 min
@@ -30,7 +37,7 @@ export async function POST(req: Request) {
     });
 
     // LINK que llegará al correo
-    const link = `http://localhost:3000/reset-password/${token}`;
+    const link = `http://localhost:5173/reset-password/${token}`;
 
     // Crea y configura el transportador (objeto encargado de enviar correos electrónicos)
     const transporter = nodemailer.createTransport({
@@ -52,13 +59,18 @@ export async function POST(req: Request) {
       `,
     });
 
-    return NextResponse.json({
-      message: 'Correo enviado para recuperar contraseña',
-    });
+    return applyCorsHeaders(
+      NextResponse.json({
+        message: 'Correo enviado para recuperar contraseña'
+      })
+    );
   } catch {
-    return NextResponse.json(
-      { error: 'Error al enviar correo' },
-      { status: 500 }
+    return applyCorsHeaders(
+      NextResponse.json(
+        { error: 'Error al enviar correo' },
+        { status: 500 }
+      )
     );
   }
 }
+

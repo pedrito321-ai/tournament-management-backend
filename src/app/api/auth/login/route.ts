@@ -3,10 +3,15 @@ import { NextResponse, NextRequest } from 'next/server';
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 import { users } from '@prisma/client';
+import { applyCorsHeaders, handleCorsOptions } from '@/libs/cors';
 
 interface LoginRequest {
   email: users['email'];
   user_password: users['user_password'];
+}
+
+export async function OPTIONS() {
+  return handleCorsOptions();
 }
 
 export async function POST(request: NextRequest) {
@@ -17,9 +22,11 @@ export async function POST(request: NextRequest) {
     const user = await prisma.users.findUnique({ where: { email } });
 
     if (!user) {
-      return NextResponse.json(
-        { error: 'Usuario no encontrado' },
-        { status: 404 }
+      return applyCorsHeaders(
+        NextResponse.json(
+          { error: 'Usuario no encontrado' },
+          { status: 404 }
+        )
       );
     }
 
@@ -29,9 +36,11 @@ export async function POST(request: NextRequest) {
     );
 
     if (!validatePassword) {
-      return NextResponse.json(
-        { error: 'Contraseña incorrecta' },
-        { status: 401 }
+      return applyCorsHeaders(
+        NextResponse.json(
+          { error: 'Contraseña incorrecta' },
+          { status: 401 }
+        )
       );
     }
 
@@ -46,22 +55,27 @@ export async function POST(request: NextRequest) {
       { expiresIn: Number(process.env.JWT_EXPIRES_IN) || 3600 }
     );
 
-    return NextResponse.json({
-      message: 'Login exitoso',
-      token,
-      user: {
-        id: user?.id,
-        name: user?.name,
-        lastName: user?.lastName,
-        nickname: user?.nickname,
-        email: user?.email,
-        role: user?.role,
-      },
-    });
+    return applyCorsHeaders(
+      NextResponse.json({
+        message: 'Login exitoso',
+        token,
+        user: {
+          id: user?.id,
+          name: user?.name,
+          lastName: user?.lastName,
+          nickname: user?.nickname,
+          email: user?.email,
+          role: user?.role,
+        },
+      })
+    );
   } catch {
-    return NextResponse.json(
-      { error: 'Error interno del servidor' },
-      { status: 500 }
+    return applyCorsHeaders(
+      NextResponse.json(
+        { error: 'Error interno del servidor' },
+        { status: 500 }
+      )
     );
   }
 }
+

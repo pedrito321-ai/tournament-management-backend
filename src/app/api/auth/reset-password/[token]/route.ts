@@ -1,14 +1,19 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcrypt';
 import prisma from '@/libs/prisma';
 import { passwordResetSchema } from '@/schemas/user.schema';
 import { ValidationError } from 'yup';
+import { applyCorsHeaders, handleCorsOptions } from '@/libs/cors';
 
 const JWT_SECRET = process.env.JWT_SECRET!;
 
+export async function OPTIONS() {
+  return handleCorsOptions();
+}
+
 export async function POST(
-  req: Request,
+  req: NextRequest,
   { params }: { params: Promise<{ token: string }> }
 ) {
   try {
@@ -28,9 +33,11 @@ export async function POST(
     });
 
     if (!resetToken) {
-      return NextResponse.json(
-        { error: 'Token inválido o ya utilizado' },
-        { status: 400 }
+      return applyCorsHeaders(
+        NextResponse.json(
+          { error: 'Token inválido o ya utilizado' },
+          { status: 400 }
+        )
       );
     }
 
@@ -45,15 +52,23 @@ export async function POST(
     // Eliminar token tras usarse (evita reutilización)
     await prisma.password_resets.delete({ where: { id: resetToken.id } });
 
-    return NextResponse.json({
-      message: 'Contraseña actualizada correctamente',
-    });
+    return applyCorsHeaders(
+      NextResponse.json({
+        message: 'Contraseña actualizada correctamente'
+      })
+    );
   } catch (error) {
     const errorMessage =
       error instanceof ValidationError
         ? error.errors.join(', ')
         : 'Error al restablecer la contraseña';
 
-    return NextResponse.json({ error: errorMessage }, { status: 400 });
+    return applyCorsHeaders(
+      NextResponse.json(
+        { error: errorMessage },
+        { status: 400 }
+      )
+    );
   }
 }
+
