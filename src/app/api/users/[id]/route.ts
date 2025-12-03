@@ -6,7 +6,13 @@ import bcrypt from 'bcrypt';
 import { users } from '@prisma/client';
 import { ValidationError } from 'yup';
 import { validateRol } from '@/libs/user/validateRol';
+import { applyCorsHeaders, handleCorsOptions } from '@/libs/cors';
 
+export async function OPTIONS() {
+  return handleCorsOptions();
+}
+
+// TODO: Determinar si para ver usuario se necesita iniciar sesión
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> },
@@ -90,19 +96,23 @@ export async function DELETE(
     // Verificar rol
     const userRole = auth.decoded?.role;
     if (userRole !== 'admin') {
-      return NextResponse.json(
-        { error: 'Solo los administradores pueden eliminar usuarios.' },
-        { status: 403 },
-      );
+      return applyCorsHeaders(
+        NextResponse.json(
+          { error: 'Solo los administradores pueden eliminar usuarios.' },
+          { status: 403 },
+        )
+      )
     }
 
     const { id } = await params
     const numericId = Number(id)
 
     if (isNaN(numericId)) {
-      return NextResponse.json(
-        { error: 'ID debe ser un número válido.' },
-        { status: 400 },
+      return applyCorsHeaders (
+        NextResponse.json(
+          { error: 'ID debe ser un número válido.' },
+          { status: 400 },
+        )
       )
     }
 
@@ -110,10 +120,12 @@ export async function DELETE(
     const existingUser = await prisma.users.findUnique({ where: { id: numericId } })
 
     if (!existingUser) {
-      return NextResponse.json(
-        { error: `El usuario con ID ${ numericId } no existe.` },
-        { status: 400 },
-      );
+      return applyCorsHeaders(
+        NextResponse.json(
+          { error: `El usuario con ID ${ numericId } no existe.` },
+          { status: 400 },
+        )
+      )
     }
 
     // Eliminar el usuario
@@ -121,18 +133,23 @@ export async function DELETE(
       where: { id: numericId },
     });
 
-    return NextResponse.json({
-      message: `El usuario con ID ${ numericId } eliminado correctamente.`,
-    });
-  } catch {
-    return NextResponse.json(
-      { error: 'Error interno del servidor al eliminar el usuario.' },
-      { status: 500 },
+    return applyCorsHeaders(
+      NextResponse.json({
+        message: `El usuario con ID ${ numericId } eliminado correctamente.`,
+      })
     );
+  } catch (error){
+    console.log(error)
+    return applyCorsHeaders(
+      NextResponse.json(
+        { error: 'Error interno del servidor al eliminar el usuario.' },
+        { status: 500 },
+      )
+    )
   }
 }
 
-// Actualizar usuario (role-based access control)
+// TODO: Refactorizar la actualización de usuario
 export async function PATCH(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }

@@ -17,7 +17,6 @@ export function applyCorsHeaders(response: NextResponse): NextResponse {
   response.headers.set('Access-Control-Allow-Credentials', CORS_CONFIG.credentials);
   response.headers.set('Access-Control-Allow-Methods', CORS_CONFIG.methods);
   response.headers.set('Access-Control-Allow-Headers', CORS_CONFIG.headers);
-  
   return response;
 }
 

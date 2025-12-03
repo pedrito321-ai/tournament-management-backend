@@ -9,7 +9,7 @@ datasource db {
 
 model categories {
   id                       Int                        @id @default(autoincrement())
-  name                     String                     @unique(map: "name") @db.VarChar(255)
+  name                     String                     @unique @db.VarChar(255)
   description              String?                    @db.Text
   robots                   robots[]
   tournament_registrations tournament_registrations[]
@@ -17,66 +17,75 @@ model categories {
 }
 
 model club_owners {
-  user_id                                       Int       @id
-  dni                                           String    @unique(map: "dni") @db.VarChar(20)
-  is_approved                                   Boolean?  @default(false)
-  approved_by_admin_id                          Int?
-  approved_at                                   DateTime? @db.Timestamp(0)
-  users                                         users     @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "club_owners_ibfk_1")
-  users_club_owners_approved_by_admin_idTousers users?    @relation("club_owners_approved_by_admin_idTousers", fields: [approved_by_admin_id], references: [id], onUpdate: NoAction, map: "club_owners_ibfk_2")
+  user_id              Int       @id
+  dni                  String    @unique @db.VarChar(20)
+  is_approved          Boolean?  @default(false)
+  approved_by_admin_id Int?
+  approved_at          DateTime? @db.Timestamp(0)
 
-  @@index([approved_by_admin_id], map: "approved_by_admin_id")
+  user users @relation("ClubOwnerUser", fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  approvedByAdmin users? @relation("ClubOwnerApprovedByAdmin", fields: [approved_by_admin_id], references: [id], onUpdate: NoAction)
+
+  @@index([approved_by_admin_id])
 }
 
 model clubs {
-  id                          Int           @id @default(autoincrement())
-  owner_id                    Int
-  name                        String        @db.VarChar(255)
-  fiscal_address              String        @db.Text
-  logo                        String?       @db.Text
-  created_at                  DateTime?     @default(now()) @db.Timestamp(0)
-  updated_at                  DateTime?     @default(now()) @db.Timestamp(0)
-  users_clubs_owner_idTousers users         @relation("clubs_owner_idTousers", fields: [owner_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "clubs_ibfk_1")
-  competitors                 competitors[]
+  id             Int       @id @default(autoincrement())
+  owner_id       Int
+  name           String    @db.VarChar(255)
+  fiscal_address String    @db.Text
+  logo           String?   @db.Text
+  created_at     DateTime? @default(now()) @db.Timestamp(0)
+  updated_at     DateTime? @default(now()) @db.Timestamp(0)
 
-  @@index([owner_id], map: "owner_id")
+  owner       users         @relation("UserOwnedClubs", fields: [owner_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  competitors competitors[]
+
+  @@index([owner_id])
 }
 
 model competitors {
-  user_id                              Int                        @id
-  club_id                              Int
-  is_approved                          Boolean?                   @default(false)
-  approved_by                          Int?
-  approved_at                          DateTime?                  @db.Timestamp(0)
-  created_at                           DateTime?                  @default(now()) @db.Timestamp(0)
-  updated_at                           DateTime?                  @default(now()) @db.Timestamp(0)
-  users_competitors_user_idTousers     users                      @relation("competitors_user_idTousers", fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "competitors_ibfk_1")
-  clubs                                clubs                      @relation(fields: [club_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "competitors_ibfk_2")
-  users_competitors_approved_byTousers users?                     @relation("competitors_approved_byTousers", fields: [approved_by], references: [id], onUpdate: NoAction, map: "competitors_ibfk_3")
-  judge_scores                         judge_scores[]
-  rankings                             rankings[]
-  robots                               robots[]
-  tournament_registrations             tournament_registrations[]
-  tournament_results                   tournament_results[]
+  user_id                  Int                        @id
+  club_id                  Int
+  is_approved              Boolean?                   @default(false)
+  approved_by              Int?
+  approved_at              DateTime?                  @db.Timestamp(0)
+  created_at               DateTime?                  @default(now()) @db.Timestamp(0)
+  updated_at               DateTime?                  @default(now()) @db.Timestamp(0)
+  judge_scores             judge_scores[]
+  rankings                 rankings[]
+  robots                   robots[]
+  tournament_registrations tournament_registrations[]
+  tournament_results       tournament_results[]
 
-  @@index([approved_by], map: "approved_by")
-  @@index([club_id], map: "club_id")
+  user users @relation("CompetitorUser", fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  club clubs @relation(fields: [club_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  approvedBy users? @relation("CompetitorApprovedBy", fields: [approved_by], references: [id], onUpdate: NoAction)
+
+  @@index([approved_by])
+  @@index([club_id])
 }
 
 model judge_scores {
-  id            Int         @id @default(autoincrement())
+  id            Int      @id @default(autoincrement())
   tournament_id Int
   judge_id      Int
   competitor_id Int
   round_number  Int
-  total_score   Decimal?    @db.Decimal(5, 2)
-  tournaments   tournaments @relation(fields: [tournament_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "judge_scores_ibfk_1")
-  judges        judges      @relation(fields: [judge_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "judge_scores_ibfk_2")
-  competitors   competitors @relation(fields: [competitor_id], references: [user_id], onDelete: Cascade, onUpdate: NoAction, map: "judge_scores_ibfk_3")
+  total_score   Decimal? @db.Decimal(5, 2)
 
-  @@index([competitor_id], map: "competitor_id")
-  @@index([judge_id], map: "judge_id")
-  @@index([tournament_id], map: "tournament_id")
+  tournaments tournaments @relation(fields: [tournament_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  judges judges @relation(fields: [judge_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  competitors competitors @relation(fields: [competitor_id], references: [user_id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([competitor_id])
+  @@index([judge_id])
+  @@index([tournament_id])
 }
 
 model judges {
@@ -86,11 +95,12 @@ model judges {
   is_active                Boolean?                   @default(true)
   created_at               DateTime?                  @default(now()) @db.Timestamp(0)
   judge_scores             judge_scores[]
-  users                    users                      @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "judges_ibfk_1")
   tournament_judges        tournament_judges[]
   tournament_registrations tournament_registrations[]
 
-  @@index([user_id], map: "user_id")
+  user users @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([user_id])
 }
 
 model news {
@@ -102,9 +112,10 @@ model news {
   source       String?   @db.VarChar(255)
   created_at   DateTime? @default(now()) @db.Timestamp(0)
   updated_at   DateTime? @default(now()) @db.Timestamp(0)
-  users        users     @relation(fields: [published_by], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "news_ibfk_1")
 
-  @@index([published_by], map: "published_by")
+  publishedBy users @relation(fields: [published_by], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([published_by])
 }
 
 model password_resets {
@@ -112,26 +123,30 @@ model password_resets {
   user_id    Int
   token      String    @db.VarChar(255)
   created_at DateTime? @default(now()) @db.Timestamp(0)
-  users      users     @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "password_resets_ibfk_1")
 
-  @@index([user_id], map: "user_id")
+  users users @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([user_id])
 }
 
 model rankings {
-  id               Int         @id @default(autoincrement())
+  id               Int       @id @default(autoincrement())
   tournament_id    Int
   competitor_id    Int
   robot_id         Int
-  total_score      Decimal?    @default(0.00) @db.Decimal(7, 2)
+  total_score      Decimal?  @default(0.00) @db.Decimal(7, 2)
   ranking_position Int?
-  last_updated     DateTime?   @default(now()) @db.Timestamp(0)
-  tournaments      tournaments @relation(fields: [tournament_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "rankings_ibfk_1")
-  competitors      competitors @relation(fields: [competitor_id], references: [user_id], onDelete: Cascade, onUpdate: NoAction, map: "rankings_ibfk_2")
-  robots           robots      @relation(fields: [robot_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "rankings_ibfk_3")
+  last_updated     DateTime? @default(now()) @db.Timestamp(0)
 
-  @@index([competitor_id], map: "competitor_id")
-  @@index([robot_id], map: "robot_id")
-  @@index([tournament_id], map: "tournament_id")
+  tournaments tournaments @relation(fields: [tournament_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  competitors competitors @relation(fields: [competitor_id], references: [user_id], onDelete: Cascade, onUpdate: NoAction)
+
+  robots robots @relation(fields: [robot_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([competitor_id])
+  @@index([robot_id])
+  @@index([tournament_id])
 }
 
 model robots {
@@ -141,24 +156,28 @@ model robots {
   competitor_id            Int
   created_at               DateTime?                  @default(now()) @db.Timestamp(0)
   rankings                 rankings[]
-  categories               categories                 @relation(fields: [category_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "robots_ibfk_1")
-  competitors              competitors                @relation(fields: [competitor_id], references: [user_id], onDelete: Cascade, onUpdate: NoAction, map: "robots_ibfk_2")
   tournament_registrations tournament_registrations[]
   tournament_results       tournament_results[]
 
-  @@index([category_id], map: "category_id")
-  @@index([competitor_id], map: "competitor_id")
+  categories categories @relation(fields: [category_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  competitors competitors @relation(fields: [competitor_id], references: [user_id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([category_id])
+  @@index([competitor_id])
 }
 
 model tournament_judges {
-  id            Int         @id @default(autoincrement())
+  id            Int @id @default(autoincrement())
   tournament_id Int
   judge_id      Int
-  tournaments   tournaments @relation(fields: [tournament_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "tournament_judges_ibfk_1")
-  judges        judges      @relation(fields: [judge_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "tournament_judges_ibfk_2")
 
-  @@index([judge_id], map: "judge_id")
-  @@index([tournament_id], map: "tournament_id")
+  tournaments tournaments @relation(fields: [tournament_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  judges judges @relation(fields: [judge_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([judge_id])
+  @@index([tournament_id])
 }
 
 model tournament_registrations {
@@ -173,81 +192,93 @@ model tournament_registrations {
   validation_notes  String?                                     @db.Text
   validated_at      DateTime?                                   @db.Timestamp(0)
   registered_at     DateTime?                                   @default(now()) @db.Timestamp(0)
-  tournaments       tournaments                                 @relation(fields: [tournament_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "tournament_registrations_ibfk_1")
-  competitors       competitors                                 @relation(fields: [competitor_id], references: [user_id], onDelete: Cascade, onUpdate: NoAction, map: "tournament_registrations_ibfk_2")
-  robots            robots                                      @relation(fields: [robot_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "tournament_registrations_ibfk_3")
-  categories        categories                                  @relation(fields: [category_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "tournament_registrations_ibfk_4")
-  judges            judges?                                     @relation(fields: [assigned_judge_id], references: [id], onUpdate: NoAction, map: "tournament_registrations_ibfk_5")
 
-  @@index([assigned_judge_id], map: "assigned_judge_id")
-  @@index([category_id], map: "category_id")
-  @@index([competitor_id], map: "competitor_id")
-  @@index([robot_id], map: "robot_id")
-  @@index([tournament_id], map: "tournament_id")
+  tournaments tournaments @relation(fields: [tournament_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  competitors competitors @relation(fields: [competitor_id], references: [user_id], onDelete: Cascade, onUpdate: NoAction)
+
+  robots robots @relation(fields: [robot_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  categories categories @relation(fields: [category_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  judges judges? @relation(fields: [assigned_judge_id], references: [id], onUpdate: NoAction)
+
+  @@index([assigned_judge_id])
+  @@index([category_id])
+  @@index([competitor_id])
+  @@index([robot_id])
+  @@index([tournament_id])
 }
 
 model tournament_results {
-  id            Int         @id @default(autoincrement())
+  id            Int       @id @default(autoincrement())
   tournament_id Int
   competitor_id Int
   robot_id      Int
   category_id   Int
-  score         Decimal?    @db.Decimal(5, 2)
+  score         Decimal?  @db.Decimal(5, 2)
   position      Int?
-  notes         String?     @db.Text
-  created_at    DateTime?   @default(now()) @db.Timestamp(0)
-  tournaments   tournaments @relation(fields: [tournament_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "tournament_results_ibfk_1")
-  competitors   competitors @relation(fields: [competitor_id], references: [user_id], onDelete: Cascade, onUpdate: NoAction, map: "tournament_results_ibfk_2")
-  robots        robots      @relation(fields: [robot_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "tournament_results_ibfk_3")
-  categories    categories  @relation(fields: [category_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "tournament_results_ibfk_4")
+  notes         String?   @db.Text
+  created_at    DateTime? @default(now()) @db.Timestamp(0)
 
-  @@index([category_id], map: "category_id")
-  @@index([competitor_id], map: "competitor_id")
-  @@index([robot_id], map: "robot_id")
-  @@index([tournament_id], map: "tournament_id")
+  tournaments tournaments @relation(fields: [tournament_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  competitors competitors @relation(fields: [competitor_id], references: [user_id], onDelete: Cascade, onUpdate: NoAction)
+
+  robots robots @relation(fields: [robot_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  categories categories @relation(fields: [category_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([category_id])
+  @@index([competitor_id])
+  @@index([robot_id])
+  @@index([tournament_id])
 }
 
 model tournaments {
-  id                       Int                        @id @default(autoincrement())
-  name                     String                     @db.VarChar(255)
-  description              String?                    @db.Text
-  start_date               DateTime?                  @db.Date
-  end_date                 DateTime?                  @db.Date
-  is_active                Boolean?                   @default(false)
-  created_by               Int?
-  created_at               DateTime?                  @default(now()) @db.Timestamp(0)
+  id          Int       @id @default(autoincrement())
+  name        String    @db.VarChar(255)
+  description String?   @db.Text
+  start_date  DateTime? @db.Date
+  end_date    DateTime? @db.Date
+  is_active   Boolean?  @default(false)
+  created_by  Int?
+  created_at  DateTime? @default(now()) @db.Timestamp(0)
+
   judge_scores             judge_scores[]
   rankings                 rankings[]
   tournament_judges        tournament_judges[]
   tournament_registrations tournament_registrations[]
   tournament_results       tournament_results[]
-  users                    users?                     @relation(fields: [created_by], references: [id], onUpdate: NoAction, map: "tournaments_ibfk_1")
 
-  @@index([created_by], map: "created_by")
+  createdBy users? @relation("UserCreatedTournaments", fields: [created_by], references: [id], onUpdate: NoAction)
+
+  @@index([created_by])
 }
 
 model users {
-  id                                                  Int               @id @default(autoincrement())
-  name                                                String            @db.VarChar(255)
-  lastName                                            String            @db.VarChar(255)
-  age                                                 Int?              @db.UnsignedTinyInt
-  nickname                                            String            @unique(map: "nickname") @db.VarChar(100)
-  email                                               String            @unique(map: "email") @db.VarChar(320)
-  user_password                                       String            @db.VarChar(255)
-  profile_picture                                     String?           @db.Text
-  role                                                users_role
-  is_active                                           Boolean?          @default(false)
-  created_at                                          DateTime?         @default(now()) @db.Timestamp(0)
-  updated_at                                          DateTime?         @default(now()) @db.Timestamp(0)
-  club_owners                                         club_owners?
-  club_owners_club_owners_approved_by_admin_idTousers club_owners[]     @relation("club_owners_approved_by_admin_idTousers")
-  clubs_clubs_owner_idTousers                         clubs[]           @relation("clubs_owner_idTousers")
-  competitors_competitors_user_idTousers              competitors?      @relation("competitors_user_idTousers")
-  competitors_competitors_approved_byTousers          competitors[]     @relation("competitors_approved_byTousers")
-  judges                                              judges[]
-  news                                                news[]
-  password_resets                                     password_resets[]
-  tournaments                                         tournaments[]
+  id              Int               @id @default(autoincrement())
+  name            String            @db.VarChar(255)
+  lastName        String            @db.VarChar(255)
+  age             Int?              @db.UnsignedTinyInt
+  nickname        String            @unique @db.VarChar(100)
+  email           String            @unique @db.VarChar(320)
+  user_password   String            @db.VarChar(255)
+  profile_picture String?           @db.Text
+  role            users_role
+  is_active       Boolean?          @default(false)
+  created_at      DateTime?         @default(now()) @db.Timestamp(0)
+  updated_at      DateTime?         @default(now()) @db.Timestamp(0)
+  judges          judges[]
+  news            news[]
+  password_resets password_resets[]
+
+  club_owner          club_owners?  @relation("ClubOwnerUser")
+  approvedClubOwners  club_owners[] @relation("ClubOwnerApprovedByAdmin")
+  ownedClubs          clubs[]       @relation("UserOwnedClubs")
+  competitor          competitors?  @relation("CompetitorUser")
+  approvedCompetitors competitors[] @relation("CompetitorApprovedBy")
+  tournaments         tournaments[] @relation("UserCreatedTournaments")
 }
 
 enum users_role {
