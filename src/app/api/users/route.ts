@@ -54,6 +54,7 @@ export async function GET(request: NextRequest) {
         nickname: true,
         email: true,
         role: true,
+        is_active: true,
         created_at: true,
         updated_at: true,
         // Datos cuando es dueño del club

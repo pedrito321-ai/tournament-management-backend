@@ -270,20 +270,40 @@ model users {
   user_password   String            @db.VarChar(255)
   profile_picture String?           @db.Text
   role            users_role
-  is_active       Boolean?          @default(false)
+  is_active       Boolean           @default(true)
   created_at      DateTime?         @default(now()) @db.Timestamp(0)
   updated_at      DateTime?         @default(now()) @db.Timestamp(0)
-  judges          judges[]
-  news            news[]
-  password_resets password_resets[]
-  approvedClubs   clubs[]           @relation("ClubApprovedBy")
 
+  judges              judges[]
+  news                news[]
+  password_resets     password_resets[]
+  approvedClubs       clubs[]       @relation("ClubApprovedBy")
   club_owner          club_owners?  @relation("ClubOwnerUser")
   approvedClubOwners  club_owners[] @relation("ClubOwnerApprovedByAdmin")
   ownedClubs          clubs[]       @relation("UserOwnedClubs")
   competitor          competitors?  @relation("CompetitorUser")
   approvedCompetitors competitors[] @relation("CompetitorApprovedBy")
   tournaments         tournaments[] @relation("UserCreatedTournaments")
+  blockedHistory      user_blocks[] @relation("UserBlocked")          // Veces que fue bloqueado
+  blocksExecuted      user_blocks[] @relation("UserBlockedByAdmin")   // Bloqueos que ejecutó como admin
+}
+
+model user_blocks {
+  id           Int       @id @default(autoincrement())
+  user_id      Int       // Usuario que será bloqueado
+  blocked_by   Int       // Admin que inicia el bloqueo
+  reason       String    @db.Text
+  status       user_block_status @default(pending)
+  blocked_at   DateTime  @default(now()) @db.Timestamp(0)
+  unblocked_at DateTime?
+
+  user         users     @relation("UserBlocked", fields: [user_id], references: [id], onDelete: Cascade, onUpdate: Cascade)
+
+  blockedBy    users     @relation("UserBlockedByAdmin", fields: [blocked_by], references: [id], onDelete: Restrict, onUpdate: Cascade)
+
+  @@index([user_id])
+  @@index([blocked_by])
+  @@index([status])
 }
 
 enum users_role {
@@ -291,6 +311,12 @@ enum users_role {
   club_owner
   competitor
   judge
+}
+
+enum user_block_status {
+  pending
+  active
+  lifted
 }
 
 enum tournament_registrations_validation_status {
