@@ -22,7 +22,19 @@ cd tournament-management-backend
 npm install
 ```
 
-4. **Iniciar servidor de desarrollo**
+4. **Prisma**
+
+Ejecuta los siguientes comandos para preparar Prisma en tu entorno local:
+
+```bash
+# Generar Prisma Client
+npx prisma generate
+
+# Aplicar migraciones a la base de datos
+npx prisma migrate dev
+```
+
+5. **Iniciar servidor de desarrollo**
 
 ```bash
 npm run dev
