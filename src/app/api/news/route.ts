@@ -1,53 +1,49 @@
-import { verifyAuth } from '@/libs/auth'
-import prisma from '@/libs/prisma'
-import { newsCreateSchema } from '@/schemas/newsItem.schema'
-import { NextRequest, NextResponse } from 'next/server'
-import { ValidationError } from 'yup'
+import { createJsonErrorResponse } from '@/helpers/createJsonErrorResponse';
+import { verifyAuth } from '@/libs/auth';
+import { applyCorsHeaders, handleCorsOptions } from '@/libs/cors';
+import prisma from '@/libs/prisma';
+import { newsCreateSchema } from '@/schemas/news.schema';
+import { createNews } from '@/service/news/createNews.service';
+import { getNews } from '@/service/news/getNews.service';
+import { NextRequest, NextResponse } from 'next/server';
+import { ValidationError } from 'yup';
+
+// Maneja la preflight request para CORS
+export async function OPTIONS() {
+  return handleCorsOptions();
+}
 
 export async function GET(request: NextRequest) {
   try {
-    const { searchParams } = new URL(request.url)
+    const { searchParams } = new URL(request.url);
 
-    const skip = Number(searchParams.get('skip'))
-    const take = Number(searchParams.get('take') ?? 10)
+    const skip = Number(searchParams.get('skip'));
+    const take = Number(searchParams.get('take') ?? 10);
 
     if (isNaN(skip) || skip < 0) {
-      return NextResponse.json(
-        { error: 'skip debe ser un número válido mayor o igual a 0.' },
-        { status: 400 },
-      )
+      return createJsonErrorResponse({
+        message: 'skip debe ser un número válido mayor o igual a 0.',
+        status: 400,
+      });
     }
 
     if (isNaN(take) || take < 1) {
-      return NextResponse.json(
-        { error: 'take debe ser un número válido mayor o igual a 1.' },
-        { status: 400 },
-      )
+      return createJsonErrorResponse({
+        message: 'take debe ser un número válido mayor o igual a 1.',
+        status: 400,
+      });
     }
 
-    const news = await prisma.news.findMany({
-      skip,
-      take,
-      orderBy: { created_at: 'desc' },
-      include: {
-        users: {
-          select: {
-            name: true,
-            email: true,
-            nickname: true
-          }
-        }
-      }
-    })
+    const news = await getNews({ skip, take });
 
-    return NextResponse.json({
-      data: news
-    })
+    return applyCorsHeaders(
+      NextResponse.json({
+        total: news.length,
+        data: news,
+      })
+    );
   } catch {
-    return NextResponse.json(
-      { error: 'Error interno del servidor. Inténtalo más tarde.' },
-      { status: 500 },
-    )
+    return createJsonErrorResponse({});
   }
 }
 
@@ -55,54 +51,77 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     // Verificar token
-    const auth = verifyAuth(request)
-    if (!auth.valid) return auth.response
+    const auth = verifyAuth(request);
+    if (!auth.valid) return auth.response;
 
-    const userRole = auth.decoded?.role
+    const authUserRole = auth.decoded?.role;
+    const authUserId = auth.decoded?.id;
 
     // Solo un admin puede crear una noticia
-    if (userRole !== 'admin') {
-      return NextResponse.json(
-        { error: 'Solo los administradores pueden crear una noticia.' },
-        { status: 403 }
-      )
+    if (authUserRole !== 'admin') {
+      return createJsonErrorResponse({
+        message: 'Solo los administradores pueden crear una noticia.',
+        status: 403,
+      });
     }
 
-    // Validar los datos de entrada
+    // Validar datos
     const {
       title,
       content,
-      published_by,
       image_url,
-      source
-    } = await newsCreateSchema.validate((await request.json()))
+      source_name,
+      source_link,
+      source_logo_url,
+      categories: rawCategories,
+    } = await newsCreateSchema.validate(await request.json());
 
-    // Crear noticia
-    const newNews = await prisma.news.create({
-      data: {
-        title,
-        content,
-        published_by,
-        image_url: image_url ?? null,
-        source: source ?? null
+    // Validación de categorías
+    if (rawCategories) {
+      for (const categoryId of rawCategories) {
+        const categoryExists = await prisma.categories.findUnique({
+          where: { id: categoryId },
+        });
+
+        if (!categoryExists) {
+          return createJsonErrorResponse({
+            message: `Categoría con ID ${categoryId} no existe.`,
+            status: 400,
+          });
+        }
       }
-    })
-
-    return NextResponse.json({
-      message: 'Notica creado correctamente.',
-      data: newNews
-    })
-  } catch (error) {
-    if (error instanceof ValidationError) {
-      return NextResponse.json(
-        { errors: error.errors },
-        { status: 400 }
-      )
     }
 
-    return NextResponse.json(
-      { error: 'Error interno del servidor al actualizar la noticia.' },
-      { status: 500 },
-    )
+    // Normalizamos categories
+    const categories =
+      rawCategories?.filter((v): v is number => v !== undefined) ?? undefined;
+
+    const newsWithRelations = await createNews({
+      title,
+      content,
+      image_url,
+      source_name,
+      source_link,
+      source_logo_url,
+      categories,
+      publishedById: Number(authUserId),
+    });
+
+    return applyCorsHeaders(
+      NextResponse.json({
+        message: 'Notica creado correctamente.',
+        data: newsWithRelations,
+      })
+    );
+  } catch (error) {
+    if (error instanceof ValidationError) {
+      return createJsonErrorResponse({
+        message: error.errors.join(', '),
+        status: 400,
+      });
+    }
+
+    // Error genérico
+    return createJsonErrorResponse({});
   }
 }

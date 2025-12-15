@@ -14,6 +14,7 @@ model categories {
   robots                   robots[]
   tournament_registrations tournament_registrations[]
   tournament_results       tournament_results[]
+  news_categories          news_categories[]
 }
 
 model club_owners {
@@ -108,18 +109,35 @@ model judges {
 }
 
 model news {
-  id           Int       @id @default(autoincrement())
-  title        String    @db.VarChar(255)
-  content      String    @db.Text
-  image_url    String?   @db.Text
-  published_by Int
-  source       String?   @db.VarChar(255)
-  created_at   DateTime? @default(now()) @db.Timestamp(0)
-  updated_at   DateTime? @default(now()) @db.Timestamp(0)
+  id              Int               @id @default(autoincrement())
+  title           String            @db.VarChar(255)
+  content         String            @db.Text
+  image_url       String?           @db.Text
+  published_by    Int
+  source_name     String?           @db.VarChar(255)
+  source_link     String?           @db.Text
+  source_logo_url String?           @db.Text
+  created_at      DateTime          @default(now()) @db.Timestamp(0)
+  updated_at      DateTime          @updatedAt @db.Timestamp(0)
+  categories      news_categories[]
 
   publishedBy users @relation(fields: [published_by], references: [id], onDelete: Cascade, onUpdate: NoAction)
 
   @@index([published_by])
+}
+
+model news_categories {
+  id          Int @id @default(autoincrement())
+  news_id     Int
+  category_id Int
+
+  news news @relation(fields: [news_id], references: [id], onDelete: Cascade)
+
+  categories categories @relation(fields: [category_id], references: [id], onDelete: Cascade)
+
+  @@unique([news_id, category_id])
+  @@index([news_id])
+  @@index([category_id])
 }
 
 model password_resets {
@@ -261,45 +279,45 @@ model tournaments {
 }
 
 model users {
-  id              Int               @id @default(autoincrement())
-  name            String            @db.VarChar(255)
-  lastName        String            @db.VarChar(255)
-  age             Int?              @db.UnsignedTinyInt
-  nickname        String            @unique @db.VarChar(100)
-  email           String            @unique @db.VarChar(320)
-  user_password   String            @db.VarChar(255)
-  profile_picture String?           @db.Text
+  id              Int        @id @default(autoincrement())
+  name            String     @db.VarChar(255)
+  lastName        String     @db.VarChar(255)
+  age             Int?       @db.UnsignedTinyInt
+  nickname        String     @unique @db.VarChar(100)
+  email           String     @unique @db.VarChar(320)
+  user_password   String     @db.VarChar(255)
+  profile_picture String?    @db.Text
   role            users_role
-  is_active       Boolean           @default(true)
-  created_at      DateTime?         @default(now()) @db.Timestamp(0)
-  updated_at      DateTime?         @default(now()) @db.Timestamp(0)
+  is_active       Boolean    @default(true)
+  created_at      DateTime?  @default(now()) @db.Timestamp(0)
+  updated_at      DateTime?  @default(now()) @db.Timestamp(0)
 
   judges              judges[]
   news                news[]
   password_resets     password_resets[]
-  approvedClubs       clubs[]       @relation("ClubApprovedBy")
-  club_owner          club_owners?  @relation("ClubOwnerUser")
-  approvedClubOwners  club_owners[] @relation("ClubOwnerApprovedByAdmin")
-  ownedClubs          clubs[]       @relation("UserOwnedClubs")
-  competitor          competitors?  @relation("CompetitorUser")
-  approvedCompetitors competitors[] @relation("CompetitorApprovedBy")
-  tournaments         tournaments[] @relation("UserCreatedTournaments")
-  blockedHistory      user_blocks[] @relation("UserBlocked")          // Veces que fue bloqueado
-  blocksExecuted      user_blocks[] @relation("UserBlockedByAdmin")   // Bloqueos que ejecutó como admin
+  approvedClubs       clubs[]           @relation("ClubApprovedBy")
+  club_owner          club_owners?      @relation("ClubOwnerUser")
+  approvedClubOwners  club_owners[]     @relation("ClubOwnerApprovedByAdmin")
+  ownedClubs          clubs[]           @relation("UserOwnedClubs")
+  competitor          competitors?      @relation("CompetitorUser")
+  approvedCompetitors competitors[]     @relation("CompetitorApprovedBy")
+  tournaments         tournaments[]     @relation("UserCreatedTournaments")
+  blockedHistory      user_blocks[]     @relation("UserBlocked") // Veces que fue bloqueado
+  blocksExecuted      user_blocks[]     @relation("UserBlockedByAdmin") // Bloqueos que ejecutó como admin
 }
 
 model user_blocks {
-  id           Int       @id @default(autoincrement())
-  user_id      Int       // Usuario que será bloqueado
-  blocked_by   Int       // Admin que inicia el bloqueo
-  reason       String    @db.Text
+  id           Int               @id @default(autoincrement())
+  user_id      Int // Usuario que será bloqueado
+  blocked_by   Int // Admin que inicia el bloqueo
+  reason       String            @db.Text
   status       user_block_status @default(pending)
-  blocked_at   DateTime  @default(now()) @db.Timestamp(0)
+  blocked_at   DateTime          @default(now()) @db.Timestamp(0)
   unblocked_at DateTime?
 
-  user         users     @relation("UserBlocked", fields: [user_id], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  user users @relation("UserBlocked", fields: [user_id], references: [id], onDelete: Cascade, onUpdate: Cascade)
 
-  blockedBy    users     @relation("UserBlockedByAdmin", fields: [blocked_by], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  blockedBy users @relation("UserBlockedByAdmin", fields: [blocked_by], references: [id], onDelete: Cascade, onUpdate: Cascade)
 
   @@index([user_id])
   @@index([blocked_by])

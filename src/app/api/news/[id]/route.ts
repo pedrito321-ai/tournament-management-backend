@@ -1,9 +1,17 @@
 import { type NextRequest, NextResponse } from 'next/server';
 import prisma from '@/libs/prisma';
 import { verifyAuth } from '@/libs/auth';
-import { news } from '@prisma/client';
 import { ValidationError } from 'yup';
-import { newsUpdateSchema } from '@/schemas/newsItem.schema';
+import { applyCorsHeaders, handleCorsOptions } from '@/libs/cors';
+import { createJsonErrorResponse } from '@/helpers/createJsonErrorResponse';
+import { getNewsItem } from '@/service/news/getNewsItem.service';
+import { newsUpdateSchema } from '@/schemas/news.schema';
+import { updateNewsService } from '@/service/news/updateNews.service';
+
+// Maneja la preflight request para CORS
+export async function OPTIONS() {
+  return handleCorsOptions();
+}
 
 export async function GET(
   request: NextRequest,
@@ -14,43 +22,33 @@ export async function GET(
     const numericId = Number(id);
 
     if (isNaN(numericId)) {
-      return NextResponse.json(
-        { error: 'ID debe ser un número válido.' },
-        { status: 400 }
-      );
+      return createJsonErrorResponse({
+        message: 'ID debe ser un número válido.',
+        status: 400,
+      });
     }
 
     // Bucar noticia
-    const news = await prisma.news.findFirst({
-      where: { id: numericId },
-      include: {
-        users: {
-          select: {
-            name: true,
-            email: true,
-            nickname: true,
-          },
-        },
-      },
-    });
+    const newsItem = await getNewsItem({ id: +id });
 
-    if (!news) {
-      return NextResponse.json(
-        { error: `El ID ${numericId} no existe` },
-        { status: 404 }
-      );
+    if (!newsItem) {
+      return createJsonErrorResponse({
+        message: `La noticia con ID ${numericId} no existe`,
+        status: 404,
+      });
     }
 
-    return NextResponse.json(news);
+    return applyCorsHeaders(NextResponse.json(newsItem));
   } catch (error) {
     if (error instanceof Error) {
-      return NextResponse.json({ error: error.message }, { status: 500 });
+      return createJsonErrorResponse({
+        message: error.message,
+        status: 500,
+      });
     }
 
-    return NextResponse.json(
-      { error: 'Error interno del servidor. Inténtalo más tarde.' },
-      { status: 500 }
-    );
+    // Error genérico
+    return createJsonErrorResponse({});
   }
 }
 
@@ -65,22 +63,23 @@ export async function DELETE(
     if (!auth.valid) return auth.response;
 
     // Verificar rol
-    const userRole = auth.decoded?.role;
-    if (userRole !== 'admin') {
-      return NextResponse.json(
-        { error: 'Solo los administradores pueden eliminar noticias.' },
-        { status: 403 }
-      );
+    const authUserRole = auth.decoded?.role;
+
+    if (authUserRole !== 'admin') {
+      return createJsonErrorResponse({
+        message: 'Solo los administradores pueden eliminar noticias.',
+        status: 403,
+      });
     }
 
     const { id } = await params;
     const numericId = Number(id);
 
     if (isNaN(numericId)) {
-      return NextResponse.json(
-        { error: 'ID debe ser un número válido.' },
-        { status: 400 }
-      );
+      return createJsonErrorResponse({
+        message: 'ID debe ser un número válido.',
+        status: 400,
+      });
     }
 
     // Verificar si la noticia ya existe
@@ -89,25 +88,23 @@ export async function DELETE(
     });
 
     if (!existingNews) {
-      return NextResponse.json(
-        { error: `La noticia con ID ${numericId} no existe.` },
-        { status: 400 }
-      );
+      return createJsonErrorResponse({
+        message: `La noticia con ID ${numericId} no existe.`,
+        status: 400,
+      });
     }
 
     // Eliminar noticia
-    await prisma.news.delete({
-      where: { id: numericId },
-    });
+    await prisma.news.delete({ where: { id: numericId } });
 
-    return NextResponse.json({
-      message: `La noticia con ID ${numericId} eliminado correctamente.`,
-    });
-  } catch {
-    return NextResponse.json(
-      { error: 'Error interno del servidor al eliminar la noticia.' },
-      { status: 500 }
+    return applyCorsHeaders(
+      NextResponse.json({
+        message: `La noticia con ID ${numericId} eliminado correctamente.`,
+      })
     );
+  } catch {
+    // Error genérico
+    return createJsonErrorResponse({});
   }
 }
 
@@ -117,27 +114,29 @@ export async function PATCH(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    // Verificar token
+    // Verificar token 
     const auth = verifyAuth(request);
     if (!auth.valid) return auth.response;
 
     // Verificar rol
-    const userRole = auth.decoded?.role;
-    if (userRole !== 'admin') {
-      return NextResponse.json(
-        { error: 'Solo los administradores pueden actualizar noticias.' },
-        { status: 403 }
-      );
+    const authUserRole = auth.decoded?.role;
+
+    if (authUserRole !== 'admin') {
+      return createJsonErrorResponse({
+        message: 'Solo los administradores pueden actualizar noticias.',
+        status: 403,
+      });
     }
 
+    // Validar el ID de la noticia desde los parámetros
     const { id } = await params;
     const numericId = Number(id);
 
     if (isNaN(numericId)) {
-      return NextResponse.json(
-        { error: 'ID debe ser un número válido.' },
-        { status: 400 }
-      );
+      return createJsonErrorResponse({
+        message: 'ID debe ser un número válido.',
+        status: 400,
+      });
     }
 
     // Verificar si la noticia existe
@@ -146,43 +145,45 @@ export async function PATCH(
     });
 
     if (!existingNews) {
-      return NextResponse.json(
-        { error: `La noticia con ID ${numericId} no existe.` },
-        { status: 400 }
-      );
+      return createJsonErrorResponse({
+        message: `La noticia con ID ${numericId} no existe.`,
+        status: 400,
+      });
     }
 
     // Validar los datos de entrada
-    const { content, image_url, source, title } =
-      await newsUpdateSchema.validate(await request.json());
+    const validatedData = await newsUpdateSchema.validate(await request.json());
 
-    // Preparar datos para actualizar
-    const dataToUpdate: Partial<Omit<news, 'created_at' | 'updated_at'>> = {};
+    // Limpiar los datos, eliminando posibles valores undefined en categories
+    const cleanedData = {
+      ...validatedData,
+      categories:
+        validatedData.categories?.filter((v): v is number => v !== undefined) ??
+        null,
+    };
 
-    // Agregar campos si se proporcionan
-    if (content) dataToUpdate.content = content;
-    if (image_url) dataToUpdate.image_url = image_url;
-    if (source) dataToUpdate.source = source;
-    if (title) dataToUpdate.title = title;
-
-    // Actualizar notiica
-    const newsUpdate = await prisma.news.update({
-      where: { id: numericId },
-      data: dataToUpdate,
+    // Actualizar la noticia en la BD usando el servicio
+    const updatedNews = await updateNewsService({
+      newsId: numericId,
+      payload: cleanedData,
+      currentNews: existingNews,
     });
 
-    return NextResponse.json({
-      message: `La noticia con ID ${numericId} actualizado correctamente.`,
-      data: newsUpdate,
-    });
+    return applyCorsHeaders(
+      NextResponse.json({
+        message: `La noticia con ID ${numericId} actualizado correctamente.`,
+        data: updatedNews,
+      })
+    );
   } catch (error) {
     if (error instanceof ValidationError) {
-      return NextResponse.json({ errors: error.errors }, { status: 400 });
+      return createJsonErrorResponse({
+        message: error.errors.join(', '),
+        status: 400,
+      });
     }
 
-    return NextResponse.json(
-      { error: 'Error interno del servidor al actualizar la noticia.' },
-      { status: 500 }
-    );
+    // Error genérico del servidor
+    return createJsonErrorResponse({});
   }
 }
