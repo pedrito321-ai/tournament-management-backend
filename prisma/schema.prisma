@@ -8,14 +8,16 @@ datasource db {
 }
 
 model categories {
-  id                       Int                        @id @default(autoincrement())
-  name                     String                     @unique @db.VarChar(255)
-  description              String?                    @db.Text
+  id          Int     @id @default(autoincrement())
+  name        String  @unique @db.VarChar(255)
+  description String? @db.Text
+
   robots                   robots[]
   tournament_registrations tournament_registrations[]
   tournament_results       tournament_results[]
   news_categories          news_categories[]
   judges                   judge_categories[]
+  tournaments              tournaments[]
 }
 
 model club_owners {
@@ -33,17 +35,20 @@ model club_owners {
 }
 
 model clubs {
-  id             Int           @id @default(autoincrement())
+  id             Int       @id @default(autoincrement())
   owner_id       Int
-  name           String        @db.VarChar(255)
-  fiscal_address String        @db.Text
-  logo           String?       @db.Text
-  created_at     DateTime?     @default(now()) @db.Timestamp(0)
-  updated_at     DateTime?     @default(now()) @db.Timestamp(0)
-  is_approved    Boolean       @default(false)
+  name           String    @db.VarChar(255)
+  fiscal_address String    @db.Text
+  logo           String?   @db.Text
+  created_at     DateTime? @default(now()) @db.Timestamp(0)
+  updated_at     DateTime? @default(now()) @db.Timestamp(0)
+  is_approved    Boolean   @default(false)
   approved_by    Int?
   approvedAt     DateTime?
-  competitors    competitors[]
+
+  competitors              competitors[]
+  tournament_registrations tournament_registrations[]
+  tournament_prizes        tournament_prizes[]
 
   owner           users  @relation("UserOwnedClubs", fields: [owner_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
   approvedByAdmin users? @relation("ClubApprovedBy", fields: [approved_by], references: [id], onUpdate: NoAction)
@@ -51,19 +56,27 @@ model clubs {
   @@index([owner_id])
 }
 
+model club_scores {
+  club_id      Int     @id
+  total_points Decimal @default(0)
+}
+
 model competitors {
-  user_id                  Int                        @id
-  club_id                  Int
-  is_approved              Boolean?                   @default(false)
-  approved_by              Int?
-  approved_at              DateTime?                  @db.Timestamp(0)
-  created_at               DateTime?                  @default(now()) @db.Timestamp(0)
-  updated_at               DateTime?                  @default(now()) @db.Timestamp(0)
+  user_id             Int       @id
+  club_id             Int
+  is_approved         Boolean?  @default(false)
+  approved_by         Int?
+  approved_at         DateTime? @db.Timestamp(0)
+  last_tournament_end DateTime?
+  created_at          DateTime? @default(now()) @db.Timestamp(0)
+  updated_at          DateTime? @default(now()) @db.Timestamp(0)
+
   robots                   robots[]
   judge_scores             judge_scores[]
   rankings                 rankings[]
   tournament_registrations tournament_registrations[]
   tournament_results       tournament_results[]
+  tournament_prizes        tournament_prizes[]
 
   user users @relation("CompetitorUser", fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
 
@@ -71,8 +84,16 @@ model competitors {
 
   approvedBy users? @relation("CompetitorApprovedBy", fields: [approved_by], references: [id], onUpdate: NoAction)
 
+  matchesAsA tournament_matches[] @relation("MatchA")
+  matchesAsB tournament_matches[] @relation("MatchB")
+
   @@index([approved_by])
   @@index([club_id])
+}
+
+model competitor_scores {
+  competitor_id Int     @id
+  total_points  Decimal @default(0)
 }
 
 model judge_scores {
@@ -95,21 +116,20 @@ model judge_scores {
 }
 
 model judges {
-  id      Int @id @default(autoincrement())
-  user_id Int
-
-  // Aprobación
+  id          Int       @id @default(autoincrement())
+  user_id     Int
   is_approved Boolean   @default(false)
   approved_by Int?
   approved_at DateTime? @db.Timestamp(0)
 
-  // Relaciones
   judge_scores             judge_scores[]
   tournament_judges        tournament_judges[]
   tournament_registrations tournament_registrations[]
   categories               judge_categories[]
+  tournament_matches       tournament_matches[]
 
   user users @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
   approvedByAdmin users? @relation("JudgeApprovedBy", fields: [approved_by], references: [id])
 
   @@index([approved_by])
@@ -120,7 +140,7 @@ model judge_categories {
   judge_id    Int
   category_id Int
 
-  judge judges @relation(fields: [judge_id], references: [id], onDelete: Cascade)
+  judge    judges     @relation(fields: [judge_id], references: [id], onDelete: Cascade)
   category categories @relation(fields: [category_id], references: [id], onDelete: Cascade)
 
   @@unique([judge_id, category_id])
@@ -211,6 +231,7 @@ model robots {
   categories  categories  @relation(fields: [category_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
   competitors competitors @relation(fields: [competitor_id], references: [user_id], onDelete: Cascade, onUpdate: NoAction)
 
+  @@unique([competitor_id, category_id])
   @@index([category_id])
   @@index([competitor_id])
   @@index([status])
@@ -233,6 +254,7 @@ model tournament_registrations {
   id                Int                                         @id @default(autoincrement())
   tournament_id     Int
   competitor_id     Int
+  club_id           Int
   robot_id          Int
   category_id       Int
   is_approved       Boolean?                                    @default(false)
@@ -246,12 +268,16 @@ model tournament_registrations {
 
   competitors competitors @relation(fields: [competitor_id], references: [user_id], onDelete: Cascade, onUpdate: NoAction)
 
+  club clubs @relation(fields: [club_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
   robots robots @relation(fields: [robot_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
 
   categories categories @relation(fields: [category_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
 
   judges judges? @relation(fields: [assigned_judge_id], references: [id], onUpdate: NoAction)
 
+  @@unique([tournament_id, club_id])
+  @@unique([tournament_id, competitor_id])
   @@index([assigned_judge_id])
   @@index([category_id])
   @@index([competitor_id])
@@ -285,24 +311,68 @@ model tournament_results {
 }
 
 model tournaments {
-  id          Int       @id @default(autoincrement())
-  name        String    @db.VarChar(255)
-  description String?   @db.Text
-  start_date  DateTime? @db.Date
-  end_date    DateTime? @db.Date
-  is_active   Boolean?  @default(false)
-  created_by  Int?
-  created_at  DateTime? @default(now()) @db.Timestamp(0)
+  id                   Int               @id @default(autoincrement())
+  name                 String            @db.VarChar(255)
+  description          String?           @db.Text
+  category_id          Int
+  max_participants     Int
+  start_date           DateTime?         @db.Date
+  end_date             DateTime?         @db.Date
+  status               tournament_status @default(draft)
+  winner_competitor_id Int?
+  winner_club_id       Int?
+  created_by           Int?
+  created_at           DateTime?         @default(now()) @db.Timestamp(0)
 
-  judge_scores             judge_scores[]
-  rankings                 rankings[]
-  tournament_judges        tournament_judges[]
-  tournament_registrations tournament_registrations[]
-  tournament_results       tournament_results[]
+  judge_scores      judge_scores[]
+  rankings          rankings[]
+  judges            tournament_judges[]
+  registrations     tournament_registrations[]
+  results           tournament_results[]
+  matches           tournament_matches[]
+  tournament_prizes tournament_prizes[]
 
   createdBy users? @relation("UserCreatedTournaments", fields: [created_by], references: [id], onUpdate: NoAction)
 
+  category categories @relation(fields: [category_id], references: [id], onUpdate: NoAction)
+
   @@index([created_by])
+}
+
+model tournament_prizes {
+  id            Int    @id @default(autoincrement())
+  tournament_id Int
+  competitor_id Int
+  club_id       Int
+  prize         String
+  victory_type  String
+
+  tournament tournaments @relation(fields: [tournament_id], references: [id])
+
+  competitor competitors @relation(fields: [competitor_id], references: [user_id], onDelete: Cascade, onUpdate: NoAction)
+
+  club clubs @relation(fields: [club_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+}
+
+model tournament_matches {
+  id            Int          @id @default(autoincrement())
+  tournament_id Int
+  round_number  Int
+  competitor_a  Int
+  competitor_b  Int
+  winner_id     Int?
+  judge_id      Int
+  duration_sec  Int
+  victory_type  String?
+  status        match_status @default(pending)
+
+  tournament tournaments @relation(fields: [tournament_id], references: [id])
+
+  judge judges @relation(fields: [judge_id], references: [id])
+
+  competitorA competitors @relation("MatchA", fields: [competitor_a], references: [user_id])
+
+  competitorB competitors @relation("MatchB", fields: [competitor_b], references: [user_id])
 }
 
 model users {
@@ -382,4 +452,17 @@ enum tournament_registrations_validation_status {
   pending
   approved
   rejected
+}
+
+enum match_status {
+  pending
+  ongoing
+  finished
+}
+
+enum tournament_status {
+  draft
+  active
+  finished
+  cancelled
 }

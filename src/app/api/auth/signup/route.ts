@@ -5,7 +5,7 @@ import bcrypt from 'bcrypt'
 import jwt from 'jsonwebtoken'
 import { ValidationError } from 'yup'
 import { validateRol } from '@/libs/user/validateRol'
-import { createUser } from '@/libs/user/createUser'
+import { createUser } from '@/service/users'
 
 export async function POST(request: NextRequest) {
   try {

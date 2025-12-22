@@ -21,20 +21,20 @@ export async function POST(request: NextRequest) {
 
     const user = await prisma.users.findUnique({ where: { email } });
 
-    if (!user?.is_active){
-      return applyCorsHeaders(
-        NextResponse.json(
-          { error: 'Tu cuenta ha sido bloqueada. No puedes ingresar.' },
-          { status: 403 }
-        )
-      );
-    }
-
     if (!user) {
       return applyCorsHeaders(
         NextResponse.json(
           { error: 'Usuario no encontrado' },
           { status: 404 }
+        )
+      );
+    }
+
+    if (!user.is_active){
+      return applyCorsHeaders(
+        NextResponse.json(
+          { error: 'Tu cuenta ha sido bloqueada. No puedes ingresar.' },
+          { status: 403 }
         )
       );
     }
