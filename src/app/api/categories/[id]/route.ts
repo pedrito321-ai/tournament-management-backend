@@ -4,45 +4,43 @@ import { verifyAuth } from '@/libs/auth';
 import { categories } from '@prisma/client';
 import { ValidationError } from 'yup';
 import { categoryUpdateSchema } from '@/schemas/category.schema';
+import { getCategory } from '@/service/categories';
+import { applyCorsHeaders, handleCorsOptions } from '@/libs/cors';
+import { createJsonErrorResponse } from '@/helpers/createJsonErrorResponse';
+
+export async function OPTIONS() {
+  return handleCorsOptions();
+}
 
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
   try {
-    // Validar token de acceso
-    const auth = verifyAuth(request);
-    if (!auth.valid) return auth.response;
-
     const { id } = await params
 
     const numericId = Number(id)
 
     if (isNaN(numericId)) {
-      return NextResponse.json(
-        { error: 'ID debe ser un número válido.' },
-        { status: 400 },
-      )
+      return createJsonErrorResponse({
+        message: 'ID debe ser un número válido.',
+        status: 400,
+      });
     }
 
     // Bucar categoría
-    const category = await prisma.categories.findFirst({
-      where: { id: numericId },
-    })
+    const category = await getCategory({ numericId });
 
     if (!category) {
-      return NextResponse.json(
-        { error: `La categoría con ID ${ numericId } no existe` },
-        { status: 404 },
-      )
+      return createJsonErrorResponse({
+        message: `La categoría con ID ${numericId} no existe`,
+        status: 404,
+      });
     }
 
-    return NextResponse.json(category)
+    return applyCorsHeaders(NextResponse.json(category));
   } catch {
-    return NextResponse.json(
-      { error: 'Error interno del servidor. Inténtalo más tarde.' },
-      { status: 500 },
-    )
+    return createJsonErrorResponse({});
   }
 }
 

@@ -1,4 +1,3 @@
-import { verifyAuth } from '@/libs/auth';
 import { NextRequest, NextResponse } from 'next/server';
 import { applyCorsHeaders, handleCorsOptions } from '@/libs/cors';
 import { createJsonErrorResponse } from '@/helpers/createJsonErrorResponse';
@@ -11,9 +10,6 @@ export async function OPTIONS() {
 // Obtener ranking de competidores
 export async function GET(request: NextRequest) {
   try {
-    const auth = verifyAuth(request);
-    if (!auth.valid) return auth.response;
-
     const { searchParams } = new URL(request.url);
     const skip = Number(searchParams.get('skip') ?? 0);
     const take = Number(searchParams.get('take') ?? 50);
