@@ -3,6 +3,9 @@ import prisma from '@/libs/prisma';
 interface ValidationResult {
   error?: string;
   status?: number;
+  judge?: {
+    id: number;
+  };
 }
 
 /**
@@ -34,8 +37,8 @@ export const validateJudgeForTournament = async (
   judgeId: number,
   categoryId: number
 ): Promise<ValidationResult> => {
-  const judge = await prisma.judges.findUnique({
-    where: { id: judgeId },
+  const judge = await prisma.judges.findFirst({
+    where: { user_id: judgeId },
     include: {
       user: true,
       categories: {

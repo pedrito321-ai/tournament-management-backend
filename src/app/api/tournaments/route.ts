@@ -118,6 +118,7 @@ export async function POST(request: NextRequest) {
     // Crear el torneo
     const tournament = await createTournament({
       ...validatedData,
+      judge_user_id: validatedData.judge_id,
       allowed_club_ids: validatedData.allowed_club_ids.filter(
         (id): id is number => id !== undefined
       ),

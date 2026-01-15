@@ -4,7 +4,7 @@ import prisma from '@/libs/prisma';
  * Obtiene un torneo por ID con toda su información relacionada
  */
 export const getTournament = async (tournamentId: number) => {
-  const tournament = await prisma.tournaments.findUnique({
+  const tournament = await prisma.tournaments.findFirst({
     where: { id: tournamentId, status: { not: 'cancelled' }  },
     include: {
       category: {
@@ -18,6 +18,13 @@ export const getTournament = async (tournamentId: number) => {
                 select: { id: true, name: true, lastName: true, email: true },
               },
             },
+          },
+        },
+      },
+      tournamentClubs: {
+        include: {
+          club: {
+            select: { id: true, name: true },
           },
         },
       },
