@@ -68,7 +68,7 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
     }
 
     // Validar que el torneo está activo
-    const activeValidation = validateTournamentIsActive(match.tournament.status);
+    const activeValidation = await validateTournamentIsActive(match.tournament_id);
     if (activeValidation.error) {
       return createJsonErrorResponse({
         message: activeValidation.error,

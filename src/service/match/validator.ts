@@ -96,10 +96,22 @@ export const validateCanSetResult = async (
 /**
  * Valida que el torneo está activo para registrar resultados
  */
-export const validateTournamentIsActive = (
-  tournamentStatus: string
-): ValidationResult => {
-  if (tournamentStatus !== 'active') {
+export const validateTournamentIsActive = async (
+  tournamentId: number
+): Promise<ValidationResult> => {
+  const tournament = await prisma.tournaments.findUnique({
+    where: { id: tournamentId },
+    select: { status: true },
+  });
+
+  if (!tournament) {
+    return {
+      error: 'El torneo no existe.',
+      status: 404,
+    };
+  }
+
+  if (tournament.status !== 'active') {
     return {
       error: 'Solo se pueden registrar resultados en torneos activos.',
       status: 400,
