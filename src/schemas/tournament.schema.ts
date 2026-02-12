@@ -50,7 +50,7 @@ export const createTournamentSchema = object({
         .integer('Cada ID de club debe ser un número entero.')
     )
     .required('Los clubes habilitados son obligatorios.')
-    .min(1, 'Debe habilitar al menos un club.'),
+    .min(8, 'Debe habilitar al menos 8 clubes.'),
 
   combat_duration_sec: number()
     .positive('La duración del combate debe ser positiva.')

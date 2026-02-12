@@ -184,7 +184,7 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     if (error instanceof ValidationError) {
       return applyCorsHeaders(
-        NextResponse.json({ error: error.message }, { status: 400 })
+        NextResponse.json({ error: error.errors }, { status: 400 })
       );
     }
 
