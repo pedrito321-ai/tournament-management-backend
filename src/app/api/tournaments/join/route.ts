@@ -17,8 +17,8 @@ import {
   validateNotAlreadyRegistered,
 } from '@/service/registration';
 
-export async function OPTIONS() {
-  return handleCorsOptions();
+export async function OPTIONS(request: NextRequest) {
+  return handleCorsOptions(request);
 }
 
 // Inscribirse a un torneo (solo competitor)
@@ -32,6 +32,7 @@ export async function POST(request: NextRequest) {
 
     if (userRole !== 'competitor') {
       return createJsonErrorResponse({
+        request,
         message: 'Solo los competidores pueden inscribirse a torneos.',
         status: 403,
       });
@@ -49,6 +50,7 @@ export async function POST(request: NextRequest) {
     const tournamentValidation = await validateTournamentExists(tournament_id);
     if (tournamentValidation.error) {
       return createJsonErrorResponse({
+        request,
         message: tournamentValidation.error,
         status: tournamentValidation.status!,
       });
@@ -62,6 +64,7 @@ export async function POST(request: NextRequest) {
     );
     if (openValidation.error) {
       return createJsonErrorResponse({
+        request,
         message: openValidation.error,
         status: openValidation.status!,
       });
@@ -71,6 +74,7 @@ export async function POST(request: NextRequest) {
     const competitorValidation = await validateIsCompetitor(userId);
     if (competitorValidation.error) {
       return createJsonErrorResponse({
+        request,
         message: competitorValidation.error,
         status: competitorValidation.status!,
       });
@@ -82,6 +86,7 @@ export async function POST(request: NextRequest) {
     const clubValidation = await validateCompetitorClub(competitor.club_id);
     if (clubValidation.error) {
       return createJsonErrorResponse({
+        request,
         message: clubValidation.error,
         status: clubValidation.status!,
       });
@@ -94,6 +99,7 @@ export async function POST(request: NextRequest) {
     );
     if (clubMemberValidation.error) {
       return createJsonErrorResponse({
+        request,
         message: clubMemberValidation.error,
         status: clubMemberValidation.status!,
       });
@@ -107,6 +113,7 @@ export async function POST(request: NextRequest) {
     );
     if (robotValidation.error) {
       return createJsonErrorResponse({
+        request,
         message: robotValidation.error,
         status: robotValidation.status!,
       });
@@ -116,6 +123,7 @@ export async function POST(request: NextRequest) {
     const fullValidation = await validateTournamentNotFull(tournament_id);
     if (fullValidation.error) {
       return createJsonErrorResponse({
+        request,
         message: fullValidation.error,
         status: fullValidation.status!,
       });
@@ -125,6 +133,7 @@ export async function POST(request: NextRequest) {
     const blockedValidation = await validateCompetitorNotBlocked(userId);
     if (blockedValidation.error) {
       return createJsonErrorResponse({
+        request,
         message: blockedValidation.error,
         status: blockedValidation.status!,
       });
@@ -137,6 +146,7 @@ export async function POST(request: NextRequest) {
     );
     if (alreadyRegisteredValidation.error) {
       return createJsonErrorResponse({
+        request,
         message: alreadyRegisteredValidation.error,
         status: alreadyRegisteredValidation.status!,
       });
@@ -152,21 +162,24 @@ export async function POST(request: NextRequest) {
     });
 
     return applyCorsHeaders(
+      request,
       NextResponse.json(
         {
-          message: 'Inscripción realizada exitosamente. Pendiente de aprobación.',
+          message:
+            'Inscripción realizada exitosamente. Pendiente de aprobación.',
           data: registration,
         },
-        { status: 201 }
-      )
+        { status: 201 },
+      ),
     );
   } catch (error) {
     if (error instanceof ValidationError) {
       return applyCorsHeaders(
-        NextResponse.json({ error: error.errors }, { status: 400 })
+        request,
+        NextResponse.json({ error: error.errors }, { status: 400 }),
       );
     }
 
-    return createJsonErrorResponse({});
+    return createJsonErrorResponse({ request });
   }
 }

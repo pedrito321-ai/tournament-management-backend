@@ -13,8 +13,8 @@ import {
 } from '@/service/tournament';
 import { tournament_status } from '@prisma/client';
 
-export async function OPTIONS() {
-  return handleCorsOptions();
+export async function OPTIONS(request: NextRequest) {
+  return handleCorsOptions(request);
 }
 
 // Listar torneos con filtros
@@ -29,6 +29,7 @@ export async function GET(request: NextRequest) {
 
     if (isNaN(skip) || skip < 0) {
       return createJsonErrorResponse({
+        request,
         message: 'skip debe ser un número válido mayor o igual a 0.',
         status: 400,
       });
@@ -36,6 +37,7 @@ export async function GET(request: NextRequest) {
 
     if (isNaN(take) || take < 1) {
       return createJsonErrorResponse({
+        request,
         message: 'take debe ser un número válido mayor o igual a 1.',
         status: 400,
       });
@@ -49,6 +51,7 @@ export async function GET(request: NextRequest) {
     });
 
     return applyCorsHeaders(
+      request,
       NextResponse.json({
         message: 'Torneos obtenidos exitosamente',
         total,
@@ -56,7 +59,7 @@ export async function GET(request: NextRequest) {
       })
     );
   } catch {
-    return createJsonErrorResponse({});
+    return createJsonErrorResponse({ request });
   }
 }
 
@@ -70,6 +73,7 @@ export async function POST(request: NextRequest) {
 
     if (userRole !== 'admin') {
       return createJsonErrorResponse({
+        request,
         message: 'Solo los administradores pueden crear torneos.',
         status: 403,
       });
@@ -87,6 +91,7 @@ export async function POST(request: NextRequest) {
     );
     if (categoryValidation.error) {
       return createJsonErrorResponse({
+        request,
         message: categoryValidation.error,
         status: categoryValidation.status!,
       });
@@ -99,6 +104,7 @@ export async function POST(request: NextRequest) {
     );
     if (judgeValidation.error) {
       return createJsonErrorResponse({
+        request,
         message: judgeValidation.error,
         status: judgeValidation.status!,
       });
@@ -110,6 +116,7 @@ export async function POST(request: NextRequest) {
     );
     if (clubsValidation.error) {
       return createJsonErrorResponse({
+        request,
         message: clubsValidation.error,
         status: clubsValidation.status!,
       });
@@ -126,6 +133,7 @@ export async function POST(request: NextRequest) {
     });
 
     return applyCorsHeaders(
+      request,
       NextResponse.json(
         {
           message: 'Torneo creado exitosamente',
@@ -137,10 +145,11 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     if (error instanceof ValidationError) {
       return applyCorsHeaders(
-        NextResponse.json({ error: error.errors }, { status: 400 })
+        request,
+        NextResponse.json({ error: error.errors }, { status: 400 }),
       );
     }
 
-    return createJsonErrorResponse({});
+    return createJsonErrorResponse({ request });
   }
 }

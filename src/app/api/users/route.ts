@@ -14,8 +14,8 @@ import {
   validateNicknameExists,
 } from '@/service/users';
 
-export async function OPTIONS() {
-  return handleCorsOptions();
+export async function OPTIONS(request: NextRequest) {
+  return handleCorsOptions(request);
 }
 
 export async function GET(request: NextRequest) {
@@ -31,6 +31,7 @@ export async function GET(request: NextRequest) {
 
     if (isNaN(skip) || skip < 0) {
       return createJsonErrorResponse({
+        request,
         message: 'skip debe ser un número válido mayor o igual a 0.',
         status: 400,
       });
@@ -38,6 +39,7 @@ export async function GET(request: NextRequest) {
 
     if (isNaN(take) || take < 1) {
       return createJsonErrorResponse({
+        request,
         message: 'take debe ser un número válido mayor o igual a 1.',
         status: 400,
       });
@@ -46,6 +48,7 @@ export async function GET(request: NextRequest) {
     const { total, users } = await getUsers({ skip, take });
 
     return applyCorsHeaders(
+      request,
       NextResponse.json({
         message: 'Acceso concedido',
         total,
@@ -54,7 +57,7 @@ export async function GET(request: NextRequest) {
     );
   } catch {
     // Error genérico
-    return createJsonErrorResponse({});
+    return createJsonErrorResponse({ request });
   }
 }
 
@@ -70,6 +73,7 @@ export async function POST(request: NextRequest) {
 
     if (userRole !== 'admin') {
       return createJsonErrorResponse({
+        request,
         message: 'Solo los administradores pueden crear un usuario.',
         status: 403,
       });
@@ -95,6 +99,7 @@ export async function POST(request: NextRequest) {
 
     if (nick.error) {
       return createJsonErrorResponse({
+        request,
         message: nick.error,
         status: nick.status!,
       });
@@ -105,6 +110,7 @@ export async function POST(request: NextRequest) {
 
     if (mail.error) {
       return createJsonErrorResponse({
+        request,
         message: mail.error,
         status: mail.status!,
       });
@@ -119,6 +125,7 @@ export async function POST(request: NextRequest) {
 
         if (!categoryExists) {
           return createJsonErrorResponse({
+            request,
             message: `Categoría con ID ${categoryId} no existe.`,
             status: 400,
           });
@@ -140,6 +147,7 @@ export async function POST(request: NextRequest) {
 
     if (roleValidationResult?.error) {
       return createJsonErrorResponse({
+        request,
         message: roleValidationResult.error,
         status: roleValidationResult.status,
       });
@@ -164,6 +172,7 @@ export async function POST(request: NextRequest) {
 
     // No generamos token, solo devolvemos info del usuario
     return applyCorsHeaders(
+      request,
       NextResponse.json(
         {
           message: 'Usuario creado exitosamente por admin',
@@ -184,15 +193,17 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     if (error instanceof ValidationError) {
       return applyCorsHeaders(
-        NextResponse.json({ error: error.errors }, { status: 400 })
+        request,
+        NextResponse.json({ error: error.errors }, { status: 400 }),
       );
     }
 
     return applyCorsHeaders(
+      request,
       NextResponse.json(
         { error: 'Error interno del servidor' },
-        { status: 500 }
-      )
+        { status: 500 },
+      ),
     );
   }
 }

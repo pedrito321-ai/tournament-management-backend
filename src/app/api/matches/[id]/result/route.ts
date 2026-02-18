@@ -17,8 +17,8 @@ interface RouteParams {
   params: Promise<{ id: string }>;
 }
 
-export async function OPTIONS() {
-  return handleCorsOptions();
+export async function OPTIONS(request: NextRequest) {
+  return handleCorsOptions(request);
 }
 
 // Registrar resultado de un combate (solo judge o admin)
@@ -32,6 +32,7 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
 
     if (userRole !== 'judge' && userRole !== 'admin') {
       return createJsonErrorResponse({
+        request,
         message: 'Solo jueces o administradores pueden registrar resultados.',
         status: 403,
       });
@@ -42,6 +43,7 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
 
     if (isNaN(matchId)) {
       return createJsonErrorResponse({
+        request,
         message: 'El ID del combate debe ser un número válido.',
         status: 400,
       });
@@ -51,6 +53,7 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
     const matchValidation = await validateMatchExists(matchId);
     if (matchValidation.error) {
       return createJsonErrorResponse({
+        request,
         message: matchValidation.error,
         status: matchValidation.status!,
       });
@@ -62,6 +65,7 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
     const notFinishedValidation = validateMatchNotFinished(match.status);
     if (notFinishedValidation.error) {
       return createJsonErrorResponse({
+        request,
         message: notFinishedValidation.error,
         status: notFinishedValidation.status!,
       });
@@ -71,6 +75,7 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
     const activeValidation = await validateTournamentIsActive(match.tournament_id);
     if (activeValidation.error) {
       return createJsonErrorResponse({
+        request,
         message: activeValidation.error,
         status: activeValidation.status!,
       });
@@ -84,6 +89,7 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
     );
     if (canSetResultValidation.error) {
       return createJsonErrorResponse({
+        request,
         message: canSetResultValidation.error,
         status: canSetResultValidation.status!,
       });
@@ -103,6 +109,7 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
     );
     if (winnerValidation.error) {
       return createJsonErrorResponse({
+        request,
         message: winnerValidation.error,
         status: winnerValidation.status!,
       });
@@ -116,6 +123,7 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
     });
 
     return applyCorsHeaders(
+      request,
       NextResponse.json({
         message: 'Resultado registrado exitosamente',
         data: updatedMatch,
@@ -124,17 +132,19 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
   } catch (error) {
     if (error instanceof ValidationError) {
       return applyCorsHeaders(
+        request,
         NextResponse.json({ error: error.errors }, { status: 400 })
       );
     }
 
     if (error instanceof Error) {
       return createJsonErrorResponse({
+        request,
         message: error.message,
         status: 400,
       });
     }
 
-    return createJsonErrorResponse({});
+    return createJsonErrorResponse({ request });
   }
 }

@@ -8,8 +8,8 @@ import { getCategory } from '@/service/categories';
 import { applyCorsHeaders, handleCorsOptions } from '@/libs/cors';
 import { createJsonErrorResponse } from '@/helpers/createJsonErrorResponse';
 
-export async function OPTIONS() {
-  return handleCorsOptions();
+export async function OPTIONS(request: NextRequest) {
+  return handleCorsOptions(request);
 }
 
 export async function GET(
@@ -23,6 +23,7 @@ export async function GET(
 
     if (isNaN(numericId)) {
       return createJsonErrorResponse({
+        request,
         message: 'ID debe ser un número válido.',
         status: 400,
       });
@@ -33,14 +34,15 @@ export async function GET(
 
     if (!category) {
       return createJsonErrorResponse({
+        request,
         message: `La categoría con ID ${numericId} no existe`,
         status: 404,
       });
     }
 
-    return applyCorsHeaders(NextResponse.json(category));
+    return applyCorsHeaders(request, NextResponse.json(category));
   } catch {
-    return createJsonErrorResponse({});
+    return createJsonErrorResponse({ request });
   }
 }
 
@@ -58,6 +60,7 @@ export async function DELETE(
     const userRole = auth.decoded?.role;
     if (userRole !== 'admin') {
       return createJsonErrorResponse({
+        request,
         message: 'Solo los administradores pueden eliminar una categoría.',
         status: 403,
       });
@@ -68,6 +71,7 @@ export async function DELETE(
 
     if (isNaN(numericId)) {
       return createJsonErrorResponse({
+        request,
         message: `La categoría con ID ${id} debe ser un número válido.`,
         status: 400,
       });
@@ -78,6 +82,7 @@ export async function DELETE(
 
     if (!existingCategory) {
       return createJsonErrorResponse({
+        request,
         message: `La categoría con ID ${ numericId } no existe.`,
         status: 400,
       });
@@ -89,12 +94,13 @@ export async function DELETE(
     })
 
     return applyCorsHeaders(
+      request,
       NextResponse.json({
         message: `La categoría con ID ${numericId} eliminada correctamente.`,
       })
     );
   } catch {
-    return createJsonErrorResponse({});
+    return createJsonErrorResponse({ request });
   }
 }
 
@@ -112,6 +118,7 @@ export async function PATCH(
     const userRole = auth.decoded?.role;
     if (userRole !== 'admin') {
       return createJsonErrorResponse({
+        request,
         message: 'Solo los administradores pueden actualizar categorías.',
         status: 403,
       });
@@ -122,6 +129,7 @@ export async function PATCH(
 
     if (isNaN(numericId)) {
       return createJsonErrorResponse({
+        request,
         message: `La categoría con ID ${id} debe ser un número válido.`,
         status: 400,
       });
@@ -132,6 +140,7 @@ export async function PATCH(
 
     if (!existingCategory) {
       return createJsonErrorResponse({
+        request,
         message: `La categoría con ID ${ numericId } no existe.`,
         status: 400,
       });
@@ -159,6 +168,7 @@ export async function PATCH(
     })
 
     return applyCorsHeaders(
+      request,
       NextResponse.json({
         message: `La categoría con ID ${numericId} actualizada correctamente.`,
         data: categoryUpdate,
@@ -167,11 +177,12 @@ export async function PATCH(
   } catch (error) {
     if (error instanceof ValidationError) {
       return createJsonErrorResponse({
+        request,
         message: error.errors.join(', '),
         status: 400,
       });
     }
 
-    return createJsonErrorResponse({});
+    return createJsonErrorResponse({ request });
   }
 }

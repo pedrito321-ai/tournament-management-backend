@@ -7,8 +7,8 @@ import { getClubs, createClub } from '@/service/clubs';
 import { NextRequest, NextResponse } from 'next/server';
 import { ValidationError } from 'yup';
 
-export async function OPTIONS() {
-  return handleCorsOptions();
+export async function OPTIONS(request: NextRequest) {
+  return handleCorsOptions(request);
 }
 
 export async function GET(request: NextRequest) {
@@ -20,6 +20,7 @@ export async function GET(request: NextRequest) {
 
     if (isNaN(skip) || skip < 0) {
       return createJsonErrorResponse({
+        request,
         message: 'skip debe ser un número válido mayor o igual a 0.',
         status: 400,
       });
@@ -27,6 +28,7 @@ export async function GET(request: NextRequest) {
 
     if (isNaN(take) || take < 1) {
       return createJsonErrorResponse({
+        request,
         message: 'take debe ser un número válido mayor o igual a 1.',
         status: 400,
       });
@@ -35,13 +37,14 @@ export async function GET(request: NextRequest) {
     const { total, clubs } = await getClubs({ take, skip });
 
     return applyCorsHeaders(
+      request,
       NextResponse.json({
         total,
         data: clubs,
       })
     );
   } catch {
-    return createJsonErrorResponse({});
+    return createJsonErrorResponse({ request });
   }
 }
 
@@ -56,6 +59,7 @@ export async function POST(request: NextRequest) {
 
     if (userRole !== 'club_owner' && userRole !== 'admin') {
       return createJsonErrorResponse({
+        request,
         message:
           'Solo los propietarios de club y administradores pueden crear un club.',
         status: 403,
@@ -72,6 +76,7 @@ export async function POST(request: NextRequest) {
     } else {
       if (!owner_id) {
         return createJsonErrorResponse({
+          request,
           message: 'El administrador debe especificar el owner_id del club.',
           status: 400,
         });
@@ -85,6 +90,7 @@ export async function POST(request: NextRequest) {
 
       if (!clubOwner) {
         return createJsonErrorResponse({
+          request,
           message:
             'No se encontró un usuario con rol dueño de club con ese ID.',
           status: 400,
@@ -100,6 +106,7 @@ export async function POST(request: NextRequest) {
     });
 
     return applyCorsHeaders(
+      request,
       NextResponse.json({
         message: 'Club creado correctamente.',
         data: newClub,
@@ -108,11 +115,12 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     if (error instanceof ValidationError) {
       return createJsonErrorResponse({
+        request,
         message: error.errors.join(', '),
         status: 400,
       });
     }
 
-    return createJsonErrorResponse({});
+    return createJsonErrorResponse({ request });
   }
 }

@@ -8,8 +8,8 @@ interface RouteParams {
   params: Promise<{ id: string }>;
 }
 
-export async function OPTIONS() {
-  return handleCorsOptions();
+export async function OPTIONS(request: NextRequest) {
+  return handleCorsOptions(request);
 }
 
 // Listar inscripciones de un torneo
@@ -20,6 +20,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
 
     if (isNaN(tournamentId)) {
       return createJsonErrorResponse({
+        request,
         message: 'El ID del torneo debe ser un número válido.',
         status: 400,
       });
@@ -29,6 +30,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     const existsValidation = await validateTournamentExists(tournamentId);
     if (existsValidation.error) {
       return createJsonErrorResponse({
+        request,
         message: existsValidation.error,
         status: existsValidation.status!,
       });
@@ -45,6 +47,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     });
 
     return applyCorsHeaders(
+      request,
       NextResponse.json({
         message: 'Inscripciones obtenidas exitosamente',
         total,
@@ -52,6 +55,6 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       })
     );
   } catch {
-    return createJsonErrorResponse({});
+    return createJsonErrorResponse({ request });
   }
 }

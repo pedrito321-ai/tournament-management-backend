@@ -10,8 +10,8 @@ interface RouteParams {
   params: Promise<{ id: string }>;
 }
 
-export async function OPTIONS() {
-  return handleCorsOptions();
+export async function OPTIONS(request: NextRequest) {
+  return handleCorsOptions(request);
 }
 
 // Iniciar torneo y generar brackets (solo admin)
@@ -24,6 +24,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
 
     if (userRole !== 'admin') {
       return createJsonErrorResponse({
+        request,
         message: 'Solo los administradores pueden iniciar torneos.',
         status: 403,
       });
@@ -34,6 +35,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
 
     if (isNaN(tournamentId)) {
       return createJsonErrorResponse({
+        request,
         message: 'El ID del torneo debe ser un número válido.',
         status: 400,
       });
@@ -43,6 +45,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     const existsValidation = await validateTournamentExists(tournamentId);
     if (existsValidation.error) {
       return createJsonErrorResponse({
+        request,
         message: existsValidation.error,
         status: existsValidation.status!,
       });
@@ -53,6 +56,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     // Validar que el torneo está en estado draft
     if (tournament.status !== 'draft') {
       return createJsonErrorResponse({
+        request,
         message: 'Solo se pueden iniciar torneos en estado borrador (draft).',
         status: 400,
       });
@@ -69,6 +73,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
 
     if (approvedRegistrations < 2) {
       return createJsonErrorResponse({
+        request,
         message: 'Se necesitan al menos 2 inscripciones aprobadas para iniciar el torneo.',
         status: 400,
       });
@@ -78,6 +83,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     const judge = await getTournamentJudge(tournamentId);
     if (!judge) {
       return createJsonErrorResponse({
+        request,
         message: 'No hay un juez asignado al torneo.',
         status: 400,
       });
@@ -91,21 +97,24 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     });
 
     return applyCorsHeaders(
+      request,
       NextResponse.json({
         message: 'Torneo iniciado exitosamente. Brackets generados.',
         data: {
           matches: result.matches,
           totalCompetitors: result.totalCompetitors,
         },
-      })
+      }),
     );
   } catch (error) {
     if (error instanceof Error) {
       return createJsonErrorResponse({
+        request,
         message: error.message,
         status: 400,
       });
     }
-    return createJsonErrorResponse({});
+
+    return createJsonErrorResponse({ request });
   }
 }

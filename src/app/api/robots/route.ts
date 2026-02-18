@@ -8,8 +8,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { ValidationError } from 'yup';
 
 // Maneja la preflight request para CORS
-export async function OPTIONS() {
-  return handleCorsOptions();
+export async function OPTIONS(request: NextRequest) {
+  return handleCorsOptions(request);
 }
 
 export async function GET(request: NextRequest) {
@@ -25,6 +25,7 @@ export async function GET(request: NextRequest) {
 
     if (isNaN(skip) || skip < 0) {
       return createJsonErrorResponse({
+        request,
         message: 'skip debe ser un número válido mayor o igual a 0.',
         status: 400,
       });
@@ -32,6 +33,7 @@ export async function GET(request: NextRequest) {
 
     if (isNaN(take) || take < 1) {
       return createJsonErrorResponse({
+        request,
         message: 'take debe ser un número válido mayor o igual a 1.',
         status: 400,
       });
@@ -42,13 +44,14 @@ export async function GET(request: NextRequest) {
       : await getRobots({ skip, take });
 
     return applyCorsHeaders(
+      request,
       NextResponse.json({
         total,
         data: robots,
-      })
+      }),
     );
   } catch {
-    return createJsonErrorResponse({});
+    return createJsonErrorResponse({ request });
   }
 }
 
@@ -65,6 +68,7 @@ export async function POST(request: NextRequest) {
     // Autorización
     if (authUserRole !== 'competitor') {
       return createJsonErrorResponse({
+        request,
         message: 'Solo los competidores pueden crear robots.',
         status: 403,
       });
@@ -84,6 +88,7 @@ export async function POST(request: NextRequest) {
 
     if (!competitorExists) {
       return createJsonErrorResponse({
+        request,
         message: 'El usuario no está registrado como competidor.',
         status: 400,
       });
@@ -96,6 +101,7 @@ export async function POST(request: NextRequest) {
 
     if (!categoryExists) {
       return createJsonErrorResponse({
+        request,
         message: 'La categoría no existe',
         status: 400,
       });
@@ -110,6 +116,7 @@ export async function POST(request: NextRequest) {
 
     if (existingRobot) {
       return createJsonErrorResponse({
+        request,
         message: 'Ya tienes un robot registrado en esta categoría.',
         status: 409,
       });
@@ -119,6 +126,7 @@ export async function POST(request: NextRequest) {
     const robot = await createRobot(data, competitorExists.user_id);
 
     return applyCorsHeaders(
+      request,
       NextResponse.json(
         { message: 'Robot creado correctamente.', data: robot },
         { status: 201 }
@@ -127,11 +135,12 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     if (error instanceof ValidationError) {
       return createJsonErrorResponse({
+        request,
         message: error.errors.join(', '),
         status: 400,
       });
     }
 
-    return createJsonErrorResponse({});
+    return createJsonErrorResponse({ request });
   }
 }

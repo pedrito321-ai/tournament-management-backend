@@ -1,4 +1,4 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import jwt from 'jsonwebtoken';
 import { applyCorsHeaders, handleCorsOptions } from '@/libs/cors';
 
@@ -8,11 +8,11 @@ export interface DecodedToken {
   email: string;
 }
 
-export async function OPTIONS() {
-  return handleCorsOptions();
+export async function OPTIONS(request: NextRequest) {
+  return handleCorsOptions(request);
 }
 
-export function verifyAuth(req: Request) {
+export function verifyAuth(req: NextRequest) {
   const authHeader = req.headers.get('authorization');
   const token = authHeader?.split(' ')[1];
 
@@ -21,6 +21,7 @@ export function verifyAuth(req: Request) {
     return {
       valid: false,
       response: applyCorsHeaders(
+        req,
         NextResponse.json(
           { message: 'Acceso denegado. No se proporcionó token.' },
           { status: 401 }
@@ -38,6 +39,7 @@ export function verifyAuth(req: Request) {
     return {
       valid: false,
       response: applyCorsHeaders(
+        req,
         NextResponse.json(
           { message: 'Token inválido o expirado.' },
           { status: 403 }

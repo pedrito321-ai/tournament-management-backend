@@ -8,8 +8,8 @@ import { applyCorsHeaders, handleCorsOptions } from '@/libs/cors';
 
 const JWT_SECRET = process.env.JWT_SECRET!;
 
-export async function OPTIONS() {
-  return handleCorsOptions();
+export async function OPTIONS(request: NextRequest) {
+  return handleCorsOptions(request);
 }
 
 export async function POST(
@@ -34,6 +34,7 @@ export async function POST(
 
     if (!resetToken) {
       return applyCorsHeaders(
+        req,
         NextResponse.json(
           { error: 'Token inválido o ya utilizado' },
           { status: 400 }
@@ -53,6 +54,7 @@ export async function POST(
     await prisma.password_resets.delete({ where: { id: resetToken.id } });
 
     return applyCorsHeaders(
+      req,
       NextResponse.json({
         message: 'Contraseña actualizada correctamente'
       })
@@ -64,6 +66,7 @@ export async function POST(
         : 'Error al restablecer la contraseña';
 
     return applyCorsHeaders(
+      req,
       NextResponse.json(
         { error: errorMessage },
         { status: 400 }

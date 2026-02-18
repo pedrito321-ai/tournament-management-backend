@@ -3,8 +3,8 @@ import { applyCorsHeaders, handleCorsOptions } from '@/libs/cors';
 import { createJsonErrorResponse } from '@/helpers/createJsonErrorResponse';
 import { getClubRanking } from '@/service/ranking';
 
-export async function OPTIONS() {
-  return handleCorsOptions();
+export async function OPTIONS(request: NextRequest) {
+  return handleCorsOptions(request);
 }
 
 // Obtener ranking de clubes
@@ -16,6 +16,7 @@ export async function GET(request: NextRequest) {
 
     if (isNaN(skip) || skip < 0) {
       return createJsonErrorResponse({
+        request,
         message: 'skip debe ser un número válido mayor o igual a 0.',
         status: 400,
       });
@@ -23,6 +24,7 @@ export async function GET(request: NextRequest) {
 
     if (isNaN(take) || take < 1) {
       return createJsonErrorResponse({
+        request,
         message: 'take debe ser un número válido mayor o igual a 1.',
         status: 400,
       });
@@ -31,13 +33,14 @@ export async function GET(request: NextRequest) {
     const { total, rankings } = await getClubRanking({ skip, take });
 
     return applyCorsHeaders(
+      request,
       NextResponse.json({
         message: 'Ranking de clubes obtenido exitosamente',
         total,
         data: rankings,
-      })
+      }),
     );
   } catch {
-    return createJsonErrorResponse({});
+    return createJsonErrorResponse({ request });
   }
 }

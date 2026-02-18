@@ -14,8 +14,8 @@ import {
 } from '@/service/users/user.validator';
 import { updateUser } from '@/service/users';
 
-export async function OPTIONS() {
-  return handleCorsOptions();
+export async function OPTIONS(request: NextRequest) {
+  return handleCorsOptions(request);
 }
 
 // Obtener usuario (debe iniciar sesión)
@@ -34,6 +34,7 @@ export async function GET(
 
     if (isNaN(numericId)) {
       return createJsonErrorResponse({
+        request,
         message: 'ID debe ser un número válido.',
         status: 400,
       });
@@ -44,15 +45,16 @@ export async function GET(
 
     if (!user) {
       return createJsonErrorResponse({
+        request,
         message: `El usuario con ID ${numericId} no existe`,
         status: 404,
       });
     }
 
-    return applyCorsHeaders(NextResponse.json(user));
+    return applyCorsHeaders(request, NextResponse.json(user));
   } catch {
     // Error genérico
-    return createJsonErrorResponse({});
+    return createJsonErrorResponse({ request });
   }
 }
 
@@ -71,6 +73,7 @@ export async function DELETE(
 
     if (userRole !== 'admin') {
       return createJsonErrorResponse({
+        request,
         message: 'Solo los administradores pueden eliminar usuarios.',
         status: 403,
       });
@@ -81,6 +84,7 @@ export async function DELETE(
 
     if (isNaN(numericId)) {
       return createJsonErrorResponse({
+        request,
         message: 'ID debe ser un número válido.',
         status: 400,
       });
@@ -93,6 +97,7 @@ export async function DELETE(
 
     if (!existingUser) {
       return createJsonErrorResponse({
+        request,
         message: `El usuario con ID ${numericId} no existe.`,
         status: 400,
       });
@@ -104,13 +109,14 @@ export async function DELETE(
     });
 
     return applyCorsHeaders(
+      request,
       NextResponse.json({
         message: `El usuario con ID ${numericId} eliminado correctamente.`,
       })
     );
   } catch {
     // Error génerico
-    return createJsonErrorResponse({});
+    return createJsonErrorResponse({ request });
   }
 }
 
@@ -132,6 +138,7 @@ export async function PATCH(
 
     if (isNaN(numericId)) {
       return createJsonErrorResponse({
+        request,
         message: 'El ID del usuario debe ser un número válido.',
         status: 400,
       });
@@ -149,6 +156,7 @@ export async function PATCH(
 
     if (!userToEdit) {
       return createJsonErrorResponse({
+        request,
         message: 'Usuario a editar no existe.',
         status: 404,
       });
@@ -174,6 +182,7 @@ export async function PATCH(
     const validationError = validators.find((v) => v?.error);
     if (validationError) {
       return createJsonErrorResponse({
+        request,
         message: validationError.error,
         status: validationError.status,
       });
@@ -189,6 +198,7 @@ export async function PATCH(
     });
 
     return applyCorsHeaders(
+      request,
       NextResponse.json({
         message: 'Usuario actualizado correctamente.',
         data: updatedUser,
@@ -197,11 +207,12 @@ export async function PATCH(
   } catch (error) {
     if (error instanceof ValidationError) {
       return createJsonErrorResponse({
+        request,
         message: error.errors.join(', '),
         status: 500,
       });
     }
 
-    return createJsonErrorResponse({});
+    return createJsonErrorResponse({ request });
   }
 }

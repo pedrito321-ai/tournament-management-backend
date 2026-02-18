@@ -5,8 +5,8 @@ import { applyCorsHeaders, handleCorsOptions } from '@/libs/cors';
 import { ValidationError } from 'yup';
 import { createUserBlockSchema } from '@/schemas/user-blocks.schema';
 
-export async function OPTIONS() {
-  return handleCorsOptions();
+export async function OPTIONS(request: NextRequest) {
+  return handleCorsOptions(request);
 }
 
 // SOLO ADMIN (GET, POST)
@@ -20,6 +20,7 @@ export async function GET(request: NextRequest) {
 
     if (userRole !== 'admin') {
       return applyCorsHeaders(
+        request,
         NextResponse.json(
           { error: 'Solo los administradores pueden ver los bloqueos de usuarios.' },
           { status: 403 }
@@ -35,6 +36,7 @@ export async function GET(request: NextRequest) {
 
     if (isNaN(skip) || skip < 0) {
       return applyCorsHeaders(
+        request,
         NextResponse.json(
           { error: 'skip debe ser un número válido mayor o igual a 0.' },
           { status: 400 }
@@ -44,6 +46,7 @@ export async function GET(request: NextRequest) {
 
     if (isNaN(take) || take < 1) {
       return applyCorsHeaders(
+        request,
         NextResponse.json(
           { error: 'take debe ser un número válido mayor o igual a 1.' },
           { status: 400 },
@@ -80,6 +83,7 @@ export async function GET(request: NextRequest) {
     })
 
     return applyCorsHeaders(
+      request,
       NextResponse.json({
         message: 'Bloqueos obtenidos correctamente',
         total: userBlocks.length,
@@ -88,6 +92,7 @@ export async function GET(request: NextRequest) {
     )
   } catch {
     return applyCorsHeaders(
+      request,
       NextResponse.json(
         { error: 'Error interno del servidor. Inténtalo más tarde.' },
         { status: 500 },
@@ -120,6 +125,7 @@ export async function POST(request: NextRequest) {
 
     if (!userExists) {
       return applyCorsHeaders(
+        request,
         NextResponse.json(
           { error: 'Usuario no encontrado' },
           { status: 404 }
@@ -137,6 +143,7 @@ export async function POST(request: NextRequest) {
     })
 
     return applyCorsHeaders(
+      request,
       NextResponse.json(
         {
           message: 'Solicitud de bloqueo registrada correctamente',
@@ -149,11 +156,13 @@ export async function POST(request: NextRequest) {
     // Capturamos errores de validación de Yup
     if (error instanceof ValidationError) {
       return applyCorsHeaders(
+        request,
         NextResponse.json({ error: error.message }, { status: 400 })
       )
     }
 
     return applyCorsHeaders(
+      request,
       NextResponse.json(
         { error: 'Error interno del servidor' },
         { status: 500 }

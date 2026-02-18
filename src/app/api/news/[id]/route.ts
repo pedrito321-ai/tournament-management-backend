@@ -9,8 +9,8 @@ import { newsUpdateSchema } from '@/schemas/news.schema';
 import { updateNewsService } from '@/service/news/updateNews.service';
 
 // Maneja la preflight request para CORS
-export async function OPTIONS() {
-  return handleCorsOptions();
+export async function OPTIONS(request: NextRequest) {
+  return handleCorsOptions(request);
 }
 
 export async function GET(
@@ -23,6 +23,7 @@ export async function GET(
 
     if (isNaN(numericId)) {
       return createJsonErrorResponse({
+        request,
         message: 'ID debe ser un número válido.',
         status: 400,
       });
@@ -33,22 +34,24 @@ export async function GET(
 
     if (!newsItem) {
       return createJsonErrorResponse({
+        request,
         message: `La noticia con ID ${numericId} no existe`,
         status: 404,
       });
     }
 
-    return applyCorsHeaders(NextResponse.json(newsItem));
+    return applyCorsHeaders(request, NextResponse.json(newsItem));
   } catch (error) {
     if (error instanceof Error) {
       return createJsonErrorResponse({
+        request,
         message: error.message,
         status: 500,
       });
     }
 
     // Error genérico
-    return createJsonErrorResponse({});
+    return createJsonErrorResponse({ request });
   }
 }
 
@@ -67,6 +70,7 @@ export async function DELETE(
 
     if (authUserRole !== 'admin') {
       return createJsonErrorResponse({
+        request,
         message: 'Solo los administradores pueden eliminar noticias.',
         status: 403,
       });
@@ -77,6 +81,7 @@ export async function DELETE(
 
     if (isNaN(numericId)) {
       return createJsonErrorResponse({
+        request,
         message: 'ID debe ser un número válido.',
         status: 400,
       });
@@ -89,6 +94,7 @@ export async function DELETE(
 
     if (!existingNews) {
       return createJsonErrorResponse({
+        request,
         message: `La noticia con ID ${numericId} no existe.`,
         status: 400,
       });
@@ -98,13 +104,14 @@ export async function DELETE(
     await prisma.news.delete({ where: { id: numericId } });
 
     return applyCorsHeaders(
+      request,
       NextResponse.json({
         message: `La noticia con ID ${numericId} eliminado correctamente.`,
       })
     );
   } catch {
     // Error genérico
-    return createJsonErrorResponse({});
+    return createJsonErrorResponse({ request });
   }
 }
 
@@ -123,6 +130,7 @@ export async function PATCH(
 
     if (authUserRole !== 'admin') {
       return createJsonErrorResponse({
+        request,
         message: 'Solo los administradores pueden actualizar noticias.',
         status: 403,
       });
@@ -134,6 +142,7 @@ export async function PATCH(
 
     if (isNaN(numericId)) {
       return createJsonErrorResponse({
+        request,
         message: 'ID debe ser un número válido.',
         status: 400,
       });
@@ -146,6 +155,7 @@ export async function PATCH(
 
     if (!existingNews) {
       return createJsonErrorResponse({
+        request,
         message: `La noticia con ID ${numericId} no existe.`,
         status: 400,
       });
@@ -169,7 +179,7 @@ export async function PATCH(
       currentNews: existingNews,
     });
 
-    return applyCorsHeaders(
+    return applyCorsHeaders(request, 
       NextResponse.json({
         message: `La noticia con ID ${numericId} actualizado correctamente.`,
         data: updatedNews,
@@ -178,12 +188,13 @@ export async function PATCH(
   } catch (error) {
     if (error instanceof ValidationError) {
       return createJsonErrorResponse({
+        request,
         message: error.errors.join(', '),
         status: 400,
       });
     }
 
     // Error genérico del servidor
-    return createJsonErrorResponse({});
+    return createJsonErrorResponse({ request });
   }
 }

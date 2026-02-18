@@ -16,8 +16,8 @@ interface RouteParams {
   params: Promise<{ id: string }>;
 }
 
-export async function OPTIONS() {
-  return handleCorsOptions();
+export async function OPTIONS(request: NextRequest) {
+  return handleCorsOptions(request);
 }
 
 // Obtener un torneo por ID
@@ -28,6 +28,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
 
     if (isNaN(tournamentId)) {
       return createJsonErrorResponse({
+        request,
         message: 'El ID del torneo debe ser un número válido.',
         status: 400,
       });
@@ -37,19 +38,21 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
 
     if (!tournament) {
       return createJsonErrorResponse({
+        request,
         message: `El torneo con ID ${tournamentId} no existe.`,
         status: 404,
       });
     }
 
     return applyCorsHeaders(
+      request,
       NextResponse.json({
         message: 'Torneo obtenido exitosamente',
         data: tournament,
       })
     );
   } catch {
-    return createJsonErrorResponse({});
+    return createJsonErrorResponse({ request });
   }
 }
 
@@ -63,6 +66,7 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
 
     if (userRole !== 'admin') {
       return createJsonErrorResponse({
+        request,
         message: 'Solo los administradores pueden actualizar torneos.',
         status: 403,
       });
@@ -73,6 +77,7 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
 
     if (isNaN(tournamentId)) {
       return createJsonErrorResponse({
+        request,
         message: 'El ID del torneo debe ser un número válido.',
         status: 400,
       });
@@ -82,6 +87,7 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
     const existsValidation = await validateTournamentExists(tournamentId);
     if (existsValidation.error) {
       return createJsonErrorResponse({
+        request,
         message: existsValidation.error,
         status: existsValidation.status!,
       });
@@ -94,6 +100,7 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
       const draftValidation = await validateTournamentIsDraft(tournamentId);
       if (draftValidation.error) {
         return createJsonErrorResponse({
+          request,
           message: draftValidation.error,
           status: draftValidation.status!,
         });
@@ -110,6 +117,7 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
     });
 
     return applyCorsHeaders(
+      request,
       NextResponse.json({
         message: 'Torneo actualizado exitosamente',
         data: tournament,
@@ -118,11 +126,12 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
   } catch (error) {
     if (error instanceof ValidationError) {
       return applyCorsHeaders(
+        request,
         NextResponse.json({ error: error.errors }, { status: 400 })
       );
     }
 
-    return createJsonErrorResponse({});
+    return createJsonErrorResponse({ request });
   }
 }
 
@@ -136,6 +145,7 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
 
     if (userRole !== 'admin') {
       return createJsonErrorResponse({
+        request,
         message: 'Solo los administradores pueden cancelar torneos.',
         status: 403,
       });
@@ -146,6 +156,7 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
 
     if (isNaN(tournamentId)) {
       return createJsonErrorResponse({
+        request,
         message: 'El ID del torneo debe ser un número válido.',
         status: 400,
       });
@@ -154,6 +165,7 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
     const existsValidation = await validateTournamentExists(tournamentId);
     if (existsValidation.error) {
       return createJsonErrorResponse({
+        request,
         message: existsValidation.error,
         status: existsValidation.status!,
       });
@@ -162,12 +174,13 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
     const tournament = await cancelTournament(tournamentId);
 
     return applyCorsHeaders(
+      request,
       NextResponse.json({
         message: 'Torneo cancelado exitosamente',
         data: tournament,
       })
     );
   } catch {
-    return createJsonErrorResponse({});
+    return createJsonErrorResponse({ request });
   }
 }

@@ -9,8 +9,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { ValidationError } from 'yup';
 
 // Maneja la preflight request para CORS
-export async function OPTIONS() {
-  return handleCorsOptions();
+export async function OPTIONS(request: NextRequest) {
+  return handleCorsOptions(request);
 }
 
 export async function GET(request: NextRequest) {
@@ -22,6 +22,7 @@ export async function GET(request: NextRequest) {
 
     if (isNaN(skip) || skip < 0) {
       return createJsonErrorResponse({
+        request,
         message: 'skip debe ser un número válido mayor o igual a 0.',
         status: 400,
       });
@@ -29,6 +30,7 @@ export async function GET(request: NextRequest) {
 
     if (isNaN(take) || take < 1) {
       return createJsonErrorResponse({
+        request,
         message: 'take debe ser un número válido mayor o igual a 1.',
         status: 400,
       });
@@ -37,13 +39,14 @@ export async function GET(request: NextRequest) {
     const news = await getNews({ skip, take });
 
     return applyCorsHeaders(
+      request,
       NextResponse.json({
         total: news.length,
         data: news,
-      })
+      }),
     );
   } catch {
-    return createJsonErrorResponse({});
+    return createJsonErrorResponse({ request });
   }
 }
 
@@ -60,6 +63,7 @@ export async function POST(request: NextRequest) {
     // Solo un admin puede crear una noticia
     if (authUserRole !== 'admin') {
       return createJsonErrorResponse({
+        request,
         message: 'Solo los administradores pueden crear una noticia.',
         status: 403,
       });
@@ -85,6 +89,7 @@ export async function POST(request: NextRequest) {
 
         if (!categoryExists) {
           return createJsonErrorResponse({
+            request,
             message: `Categoría con ID ${categoryId} no existe.`,
             status: 400,
           });
@@ -108,20 +113,22 @@ export async function POST(request: NextRequest) {
     });
 
     return applyCorsHeaders(
+      request,
       NextResponse.json({
-        message: 'Notica creado correctamente.',
+        message: 'Noticia creada correctamente.',
         data: newsWithRelations,
-      })
+      }),
     );
   } catch (error) {
     if (error instanceof ValidationError) {
       return createJsonErrorResponse({
+        request,
         message: error.errors.join(', '),
         status: 400,
       });
     }
 
     // Error genérico
-    return createJsonErrorResponse({});
+    return createJsonErrorResponse({ request });
   }
 }

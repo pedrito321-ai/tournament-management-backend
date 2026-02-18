@@ -5,8 +5,8 @@ import { ValidationError } from 'yup';
 import { applyCorsHeaders, handleCorsOptions } from '@/libs/cors';
 import { updateUserBlockStatusSchema } from '@/schemas/user-blocks.schema';
 
-export async function OPTIONS() {
-  return handleCorsOptions();
+export async function OPTIONS(request: NextRequest) {
+  return handleCorsOptions(request);
 }
 
 // SOLO ADMIN (GET, PATCH)
@@ -23,6 +23,7 @@ export async function GET(
 
     if (userRole !== 'admin') {
       return applyCorsHeaders(
+        request,
         NextResponse.json(
           { error: 'Solo los administradores pueden ver los bloqueos de usuarios.' },
           { status: 403 }
@@ -36,6 +37,7 @@ export async function GET(
 
     if (isNaN(numericId)) {
       return applyCorsHeaders(
+        request,
         NextResponse.json(
           { error: 'ID debe ser un número válido.' },
           { status: 400 },
@@ -76,6 +78,7 @@ export async function GET(
 
     if (!userBlock) {
       return applyCorsHeaders(
+        request,
         NextResponse.json(
           { error: `No existe un bloqueo con ID ${numericId}` },
           { status: 404 },
@@ -84,6 +87,7 @@ export async function GET(
     }
 
     return applyCorsHeaders(
+      request,
       NextResponse.json({
         message: 'Bloqueo encontrado correctamente',
         data: userBlock,
@@ -91,6 +95,7 @@ export async function GET(
     )
   } catch {
     return applyCorsHeaders(
+      request,
       NextResponse.json(
         { error: 'Error interno del servidor. Inténtalo más tarde.' },
         { status: 500 },
@@ -112,6 +117,7 @@ export async function PATCH(
     const userRole = auth.decoded?.role;
     if (userRole !== 'admin') {
       return applyCorsHeaders(
+        request,
         NextResponse.json(
           { error: 'Solo los administradores pueden actualizar el estado del bloqueo.' },
           { status: 403 }
@@ -125,6 +131,7 @@ export async function PATCH(
 
     if (isNaN(blockId)) {
       return applyCorsHeaders(
+        request,
         NextResponse.json(
           { error: 'ID del bloqueo inválido.' },
           { status: 400 },
@@ -139,6 +146,7 @@ export async function PATCH(
 
     if (!existingBlock) {
       return applyCorsHeaders(
+        request,
         NextResponse.json(
           { error: `No existe un bloqueo con ID ${blockId}.` },
           { status: 404 }
@@ -175,6 +183,7 @@ export async function PATCH(
     }
 
     return applyCorsHeaders(
+      request,
       NextResponse.json(
         {
           message: 'Estado del bloqueo actualizado correctamente',
@@ -187,6 +196,7 @@ export async function PATCH(
   } catch (error) {
     if (error instanceof ValidationError) {
       return applyCorsHeaders(
+        request,
         NextResponse.json(
           { error: error.message },
           { status: 400 }
@@ -195,6 +205,7 @@ export async function PATCH(
     }
 
     return applyCorsHeaders(
+      request,
       NextResponse.json(
         { error: 'Error interno del servidor al actualizar el bloqueo.' },
         { status: 500 }

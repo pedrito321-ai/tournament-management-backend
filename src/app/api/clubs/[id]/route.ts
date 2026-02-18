@@ -8,8 +8,8 @@ import { applyCorsHeaders, handleCorsOptions } from '@/libs/cors';
 import { createJsonErrorResponse } from '@/helpers/createJsonErrorResponse';
 import { getClub } from '@/service/clubs';
 
-export async function OPTIONS() {
-  return handleCorsOptions();
+export async function OPTIONS(request: NextRequest) {
+  return handleCorsOptions(request);
 }
 
 export async function GET(
@@ -22,6 +22,7 @@ export async function GET(
 
     if (isNaN(numericId)) {
       return createJsonErrorResponse({
+        request,
         message: 'ID debe ser un número válido.',
         status: 400,
       });
@@ -32,14 +33,15 @@ export async function GET(
 
     if (!club) {
       return createJsonErrorResponse({
+        request,
         message: `El club con ID ${numericId} no existe`,
         status: 404,
       });
     }
 
-    return applyCorsHeaders(NextResponse.json(club));
+    return applyCorsHeaders(request, NextResponse.json(club));
   } catch {
-    return createJsonErrorResponse({});
+    return createJsonErrorResponse({ request });
   }
 }
 
@@ -57,6 +59,7 @@ export async function DELETE(
     const userRole = auth.decoded?.role;
     if (userRole !== 'admin') {
       return createJsonErrorResponse({
+        request,
         message: 'Solo los administradores pueden eliminar clubes.',
         status: 403,
       });
@@ -67,6 +70,7 @@ export async function DELETE(
 
     if (isNaN(numericId)) {
       return createJsonErrorResponse({
+        request,
         message: 'ID debe ser un número válido.',
         status: 400,
       });
@@ -79,6 +83,7 @@ export async function DELETE(
 
     if (!existingClub) {
       return createJsonErrorResponse({
+        request,
         message: `El club con ID ${numericId} no existe.`,
         status: 400,
       });
@@ -90,12 +95,13 @@ export async function DELETE(
     });
 
     return applyCorsHeaders(
+      request,
       NextResponse.json({
         message: `El club con ID ${numericId} eliminado correctamente.`,
-      })
+      }),
     );
   } catch {
-    return createJsonErrorResponse({});
+    return createJsonErrorResponse({ request });
   }
 }
 
@@ -115,6 +121,7 @@ export async function PATCH(
 
     if (userRole !== 'admin') {
       return createJsonErrorResponse({
+        request,
         message: 'Solo los administradores pueden actualizar clubes.',
         status: 403,
       });
@@ -125,6 +132,7 @@ export async function PATCH(
 
     if (isNaN(numericId)) {
       return createJsonErrorResponse({
+        request,
         message: 'ID debe ser un número válido.',
         status: 400,
       });
@@ -137,6 +145,7 @@ export async function PATCH(
 
     if (!existingClub) {
       return createJsonErrorResponse({
+        request,
         message: `El club con ID ${numericId} no existe.`,
         status: 400,
       });
@@ -167,19 +176,21 @@ export async function PATCH(
     });
 
     return applyCorsHeaders(
+      request,
       NextResponse.json({
         message: `El club con ID ${numericId} actualizado correctamente.`,
         data: clubUpdate,
-      })
+      }),
     );
   } catch (error) {
     if (error instanceof ValidationError) {
       return createJsonErrorResponse({
+        request,
         message: error.errors.join(', '),
         status: 400,
       });
     }
 
-    return createJsonErrorResponse({});
+    return createJsonErrorResponse({ request });
   }
 }

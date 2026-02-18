@@ -10,8 +10,8 @@ interface LoginRequest {
   user_password: users['user_password'];
 }
 
-export async function OPTIONS() {
-  return handleCorsOptions();
+export async function OPTIONS(request: NextRequest) {
+  return handleCorsOptions(request);
 }
 
 export async function POST(request: NextRequest) {
@@ -23,6 +23,7 @@ export async function POST(request: NextRequest) {
 
     if (!user) {
       return applyCorsHeaders(
+        request,
         NextResponse.json(
           { error: 'Usuario no encontrado' },
           { status: 404 }
@@ -32,6 +33,7 @@ export async function POST(request: NextRequest) {
 
     if (!user.is_active){
       return applyCorsHeaders(
+        request,
         NextResponse.json(
           { error: 'Tu cuenta ha sido bloqueada. No puedes ingresar.' },
           { status: 403 }
@@ -46,6 +48,7 @@ export async function POST(request: NextRequest) {
 
     if (!validatePassword) {
       return applyCorsHeaders(
+        request,
         NextResponse.json(
           { error: 'Contraseña incorrecta' },
           { status: 401 }
@@ -65,6 +68,7 @@ export async function POST(request: NextRequest) {
     );
 
     return applyCorsHeaders(
+      request,
       NextResponse.json({
         message: 'Login exitoso',
         token,
@@ -80,6 +84,7 @@ export async function POST(request: NextRequest) {
     );
   } catch {
     return applyCorsHeaders(
+      request,
       NextResponse.json(
         { error: 'Error interno del servidor' },
         { status: 500 }

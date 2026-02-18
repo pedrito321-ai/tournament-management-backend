@@ -13,8 +13,8 @@ import {
 import { updateRobotSchema } from '@/schemas/robot.schema';
 
 // Maneja la preflight request para CORS
-export async function OPTIONS() {
-  return handleCorsOptions();
+export async function OPTIONS(request: NextRequest) {
+  return handleCorsOptions(request);
 }
 
 export async function GET(
@@ -31,6 +31,7 @@ export async function GET(
 
     if (isNaN(numericId)) {
       return createJsonErrorResponse({
+        request,
         message: 'ID debe ser un número válido.',
         status: 400,
       });
@@ -43,22 +44,24 @@ export async function GET(
 
     if (!robot) {
       return createJsonErrorResponse({
+        request,
         message: `El robot con ID ${numericId} no existe`,
         status: 404,
       });
     }
 
-    return applyCorsHeaders(NextResponse.json(robot));
+    return applyCorsHeaders(request, NextResponse.json(robot));
   } catch (error) {
     if (error instanceof Error) {
       return createJsonErrorResponse({
+        request,
         message: error.message,
         status: 500,
       });
     }
 
     // Error genérico
-    return createJsonErrorResponse({});
+    return createJsonErrorResponse({ request });
   }
 }
 
@@ -78,6 +81,7 @@ export async function DELETE(
 
     if (!allowedUserRoles.includes(authUserRole!)) {
       return createJsonErrorResponse({
+        request,
         message: 'No tienes permisos para eliminar robot.',
         status: 403,
       });
@@ -88,6 +92,7 @@ export async function DELETE(
 
     if (isNaN(numericId)) {
       return createJsonErrorResponse({
+        request,
         message: 'ID debe ser un número válido.',
         status: 400,
       });
@@ -100,6 +105,7 @@ export async function DELETE(
 
     if (!existingNews) {
       return createJsonErrorResponse({
+        request,
         message: `El robot con ID ${numericId} no existe.`,
         status: 400,
       });
@@ -109,13 +115,14 @@ export async function DELETE(
     await prisma.robots.delete({ where: { id: numericId } });
 
     return applyCorsHeaders(
+      request,
       NextResponse.json({
         message: `El robot con ID ${numericId} eliminado correctamente.`,
-      })
+      }),
     );
   } catch {
     // Error genérico
-    return createJsonErrorResponse({});
+    return createJsonErrorResponse({ request });
   }
 }
 
@@ -136,6 +143,7 @@ export async function PATCH(
     // Validar ID
     if (isNaN(robotId)) {
       return createJsonErrorResponse({
+        request,
         message: 'ID debe ser un número válido.',
         status: 400,
       });
@@ -144,6 +152,7 @@ export async function PATCH(
     // Autorización por rol
     if (!['admin', 'competitor'].includes(role)) {
       return createJsonErrorResponse({
+        request,
         message: 'No tienes permisos para eliminar robot.',
         status: 403,
       });
@@ -154,6 +163,7 @@ export async function PATCH(
 
     if (!robot) {
       return createJsonErrorResponse({
+        request,
         message: 'Robot no encontrado.',
         status: 404,
       });
@@ -162,6 +172,7 @@ export async function PATCH(
     // Verificar propiedad (solo para competitors)
     if (role === 'competitor' && robot.competitor_id !== userId) {
       return createJsonErrorResponse({
+        request,
         message: 'No puede editar un robot que no le pertenece.',
         status: 403,
       });
@@ -181,6 +192,7 @@ export async function PATCH(
 
       if (!categoryExists) {
         return createJsonErrorResponse({
+          request,
           message: 'La categoría no existe.',
           status: 400,
         });
@@ -196,15 +208,17 @@ export async function PATCH(
     });
 
     return applyCorsHeaders(
+      request,
       NextResponse.json({
         message: 'Robot actualizado correctamente.',
         data: updatedRobot,
-      })
+      }),
     );
   } catch (error) {
     // Error de validación de schema
     if (error instanceof ValidationError) {
       return createJsonErrorResponse({
+        request,
         message: error.errors.join(', '),
         status: 400,
       });
@@ -218,12 +232,13 @@ export async function PATCH(
         FORBIDDEN_FIELDS: 403,
       };
       return createJsonErrorResponse({
+        request,
         message: error.message,
         status: statusMap[error.code] ?? 500,
       });
     }
 
     // Error genérico
-    return createJsonErrorResponse({});
+    return createJsonErrorResponse({ request });
   }
 }

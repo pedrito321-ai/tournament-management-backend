@@ -6,8 +6,8 @@ import { applyCorsHeaders, handleCorsOptions } from '@/libs/cors';
 
 const JWT_SECRET = process.env.JWT_SECRET!;
 
-export async function OPTIONS() {
-  return handleCorsOptions();
+export async function OPTIONS(request: NextRequest) {
+  return handleCorsOptions(request);
 }
 
 export async function POST(req: NextRequest) {
@@ -19,6 +19,7 @@ export async function POST(req: NextRequest) {
 
     if (!user)
       return applyCorsHeaders(
+        req,
         NextResponse.json(
           { error: 'Correo no encontrado' },
           { status: 404 }
@@ -60,12 +61,14 @@ export async function POST(req: NextRequest) {
     });
 
     return applyCorsHeaders(
+      req,
       NextResponse.json({
         message: 'Correo enviado para recuperar contraseña'
       })
     );
   } catch {
     return applyCorsHeaders(
+      req,
       NextResponse.json(
         { error: 'Error al enviar correo' },
         { status: 500 }
@@ -73,4 +76,3 @@ export async function POST(req: NextRequest) {
     );
   }
 }
-

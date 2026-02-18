@@ -7,8 +7,8 @@ import { getCategories } from '@/service/categories';
 import { NextRequest, NextResponse } from 'next/server'
 import { ValidationError } from 'yup';
 
-export async function OPTIONS() {
-  return handleCorsOptions();
+export async function OPTIONS(request: NextRequest) {
+  return handleCorsOptions(request);
 }
 
 export async function GET(request: NextRequest) {
@@ -20,6 +20,7 @@ export async function GET(request: NextRequest) {
 
     if (isNaN(skip) || skip < 0) {
       return createJsonErrorResponse({
+        request,
         message: 'skip debe ser un número válido mayor o igual a 0.',
         status: 400,
       });
@@ -27,6 +28,7 @@ export async function GET(request: NextRequest) {
 
     if (isNaN(take) || take < 1) {
       return createJsonErrorResponse({
+        request,
         message: 'take debe ser un número válido mayor o igual a 1.',
         status: 400,
       });
@@ -34,9 +36,12 @@ export async function GET(request: NextRequest) {
 
     const { total, categories } = await getCategories({ take, skip });
 
-    return applyCorsHeaders(NextResponse.json({ total, data: categories }));
+    return applyCorsHeaders(
+      request,
+      NextResponse.json({ total, data: categories }),
+    );
   } catch {
-    return createJsonErrorResponse({});
+    return createJsonErrorResponse({ request });
   }
 }
 
@@ -52,6 +57,7 @@ export async function POST(request: NextRequest) {
     // Solo un admin puede crear una categoría
     if (userRole !== 'admin') {
       return createJsonErrorResponse({
+        request,
         message: 'Solo los administradores pueden crear una categoría.',
         status: 403,
       });
@@ -68,6 +74,7 @@ export async function POST(request: NextRequest) {
 
     if (existingCategory) {
       return createJsonErrorResponse({
+        request,
         message: 'El nombre de la categoría ya está en uso.',
         status: 409,
       });
@@ -82,19 +89,21 @@ export async function POST(request: NextRequest) {
     })
 
     return applyCorsHeaders(
+      request,
       NextResponse.json({
         message: 'Categoría creada correctamente.',
-        data: newCategory
-      })
+        data: newCategory,
+      }),
     );
   } catch (error) {
     if (error instanceof ValidationError) {
       return createJsonErrorResponse({
+        request,
         message: error.errors.join(', '),
         status: 400,
       });
     }
 
-    return createJsonErrorResponse({});
+    return createJsonErrorResponse({ request });
   }
 }
