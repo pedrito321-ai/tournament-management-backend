@@ -20,7 +20,8 @@ export async function POST(request: NextRequest) {
       user_password,
       role,
       club_id,
-      dni
+      dni,
+      category_ids,
     } = await userRegisterSchema.validate(body, { abortEarly: false })
 
     // Verificar si nickname ya existe
@@ -47,11 +48,17 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    // Limpiar category_ids para asegurarnos de que solo contenga números
+    const cleanCategoryIds = category_ids?.filter(
+      (id): id is number => typeof id === 'number'
+    )
+
     // Validar datos según rol
     const roleValidationResult = await validateRol({
       currentRole: role!,
       club_id,
       dni,
+      category_ids: cleanCategoryIds,
     })
 
     if (roleValidationResult?.error) {
@@ -75,6 +82,7 @@ export async function POST(request: NextRequest) {
       role,
       club_id,
       dni,
+      category_ids: cleanCategoryIds,
     })
 
     // Generar JWT
